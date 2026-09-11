@@ -284,7 +284,14 @@ export function createMcpServer(): Server {
         const handler = await getDomainHandler("assets");
         return await handler.handleCall(name, toolArgs);
       }
-      if (name.startsWith("halopsa_agents_")) {
+      // halopsa_teams_* lives in the agents domain (see domains/agents.ts):
+      // agents.getTools() advertises halopsa_teams_list and handleCall implements
+      // it, but the name carries no agents_ prefix, so route it here explicitly
+      // or it falls through to the unknown-tool branch below.
+      if (
+        name.startsWith("halopsa_agents_") ||
+        name.startsWith("halopsa_teams_")
+      ) {
         const handler = await getDomainHandler("agents");
         return await handler.handleCall(name, toolArgs);
       }
