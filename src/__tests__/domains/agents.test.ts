@@ -178,6 +178,92 @@ describe("Agents Domain Handler", () => {
       });
     });
 
+    // Halo does not wrap every list endpoint the way /Tickets and /Client do.
+    // These are the shapes that made halopsa_teams_list return {} and
+    // halopsa_agents_list return a bare record_count against a live tenant.
+    describe("list responses Halo does not wrap as expected", () => {
+      it("should read rows from a bare array response", async () => {
+        mockTeamsList.mockResolvedValueOnce([
+          { id: 1, name: "1st Line Support" },
+          { id: 3, name: "2nd Line Support" },
+        ]);
+
+        const result = await agentsHandler.handleCall("halopsa_teams_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        expect(data.record_count).toBe(2);
+        expect(data.teams).toHaveLength(2);
+        expect(data.teams[1]).toEqual({ id: 3, name: "2nd Line Support" });
+        expect(data.unrecognised_response).toBeUndefined();
+      });
+
+      it("should read rows from an array under a different key", async () => {
+        mockTeamsList.mockResolvedValueOnce({
+          record_count: 2,
+          records: [{ id: 1, name: "Support" }, { id: 3, name: "Infrastructure" }],
+        });
+
+        const result = await agentsHandler.handleCall("halopsa_teams_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        expect(data.record_count).toBe(2);
+        expect(data.teams).toHaveLength(2);
+        expect(data.unrecognised_response).toBeUndefined();
+      });
+
+      it("should surface the raw response when it carries a count but no rows", async () => {
+        mockAgentsList.mockResolvedValueOnce({ record_count: 21 });
+
+        const result = await agentsHandler.handleCall("halopsa_agents_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        // The count Halo reported is kept, so "21 rows we could not find" stays
+        // distinguishable from "no rows" -- the old code dropped both silently.
+        expect(data.record_count).toBe(21);
+        expect(data.agents).toEqual([]);
+        expect(data.unrecognised_response).toEqual({ record_count: 21 });
+      });
+
+      it("should surface an empty object rather than reporting an empty list", async () => {
+        mockTeamsList.mockResolvedValueOnce({});
+
+        const result = await agentsHandler.handleCall("halopsa_teams_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        expect(data.record_count).toBe(0);
+        expect(data.teams).toEqual([]);
+        expect(data.unrecognised_response).toEqual({});
+      });
+
+      it("should not guess when several arrays could be the rows", async () => {
+        const ambiguous = {
+          record_count: 2,
+          teams_a: [{ id: 1 }],
+          teams_b: [{ id: 2 }],
+        };
+        mockTeamsList.mockResolvedValueOnce(ambiguous);
+
+        const result = await agentsHandler.handleCall("halopsa_teams_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        expect(data.teams).toEqual([]);
+        expect(data.unrecognised_response).toEqual(ambiguous);
+      });
+
+      it("should leave the documented shape untouched", async () => {
+        const result = await agentsHandler.handleCall("halopsa_teams_list", {});
+        const data = JSON.parse(result.content[0].text);
+
+        expect(data).toEqual({
+          record_count: 2,
+          teams: [
+            { id: 1, name: "Support" },
+            { id: 2, name: "Engineering" },
+          ],
+        });
+      });
+    });
+
     describe("unknown tool", () => {
       it("should return error for unknown tool", async () => {
         const result = await agentsHandler.handleCall("halopsa_agents_unknown", {});
