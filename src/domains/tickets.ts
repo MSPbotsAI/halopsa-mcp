@@ -5,10 +5,67 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import type { CustomField } from "@wyre-technology/node-halopsa";
 import type { DomainHandler, CallToolResult } from "../utils/types.js";
 import { getClient } from "../utils/client.js";
 import { elicitSelection } from "../utils/elicitation.js";
 import { buildTicketCard, TICKET_CARD_META } from "../card.builder.js";
+
+/**
+ * Validate and normalise the custom_fields tool argument.
+ *
+ * A field is addressed by id or by name -- Halo accepts either, and an agent
+ * that knows a field as "CFEscalated" should not have to look up that it is
+ * id 291 first.
+ *
+ * The SDK's CustomField models a field as it comes back from a *read*, where
+ * name and type are always populated. A write only needs the identifier and
+ * the new value, and client.tickets.update spreads its data argument into the
+ * Halo payload verbatim, so the narrower object built here is what actually
+ * goes over the wire; the cast records that gap rather than inventing a name
+ * and type we do not have.
+ */
+function parseCustomFields(raw: unknown): CustomField[] | undefined {
+  if (raw === undefined) return undefined;
+
+  if (!Array.isArray(raw)) {
+    throw new Error(
+      "custom_fields must be an array of { id or name, value } objects"
+    );
+  }
+
+  return raw.map((entry, index) => {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      throw new Error(
+        `custom_fields[${index}] must be an object with an id or name and a value`
+      );
+    }
+
+    const { id, name, value } = entry as {
+      id?: unknown;
+      name?: unknown;
+      value?: unknown;
+    };
+
+    if (id === undefined && name === undefined) {
+      throw new Error(
+        `custom_fields[${index}] needs an id or a name to identify the field`
+      );
+    }
+    if (value === undefined) {
+      throw new Error(
+        `custom_fields[${index}] needs a value (use null to clear the field)`
+      );
+    }
+
+    // Omit the absent identifier rather than sending an explicit undefined.
+    return {
+      ...(id === undefined ? {} : { id }),
+      ...(name === undefined ? {} : { name }),
+      value,
+    } as CustomField;
+  });
+}
 
 /**
  * Get ticket domain tools
@@ -135,6 +192,31 @@ function getTools(): Tool[] {
             type: "number",
             description:
               "Assigned team, by ID. Resolve a name to an ID with halopsa_teams_list.",
+          },
+          custom_fields: {
+            type: "array",
+            description:
+              "Custom fields to write. Address each field by id or by name; " +
+              "match the value to the field type (checkbox takes a boolean).",
+            items: {
+              type: "object",
+              properties: {
+                id: {
+                  type: "number",
+                  description: "Custom field id, e.g. 291.",
+                },
+                name: {
+                  type: "string",
+                  description:
+                    "Custom field name, e.g. CFEscalated. Use when the id is unknown.",
+                },
+                value: {
+                  type: ["string", "number", "boolean", "null"],
+                  description: "New value; null clears the field.",
+                },
+              },
+              required: ["value"],
+            },
           },
         },
         required: ["ticket_id"],
@@ -298,6 +380,7 @@ async function handleCall(
         priority_id: args.priority_id as number | undefined,
         agent_id: args.agent_id as number | undefined,
         team_id: args.team_id as number | undefined,
+        customfields: parseCustomFields(args.custom_fields),
       });
 
       return {

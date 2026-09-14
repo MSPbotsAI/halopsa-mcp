@@ -282,6 +282,7 @@ describe("Tickets Domain Handler", () => {
           priority_id: 1,
           agent_id: undefined,
           team_id: undefined,
+          customfields: undefined,
         });
       });
 
@@ -298,7 +299,113 @@ describe("Tickets Domain Handler", () => {
           priority_id: undefined,
           agent_id: undefined,
           team_id: 7,
+          customfields: undefined,
         });
+      });
+    });
+
+    describe("halopsa_tickets_update custom fields", () => {
+      it("should pass a custom field addressed by id", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 49080,
+          custom_fields: [{ id: 291, value: true }],
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(
+          49080,
+          expect.objectContaining({
+            customfields: [{ id: 291, value: true }],
+          })
+        );
+      });
+
+      it("should pass a custom field addressed by name", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 49080,
+          custom_fields: [{ name: "CFEscalated", value: true }],
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(
+          49080,
+          expect.objectContaining({
+            customfields: [{ name: "CFEscalated", value: true }],
+          })
+        );
+      });
+
+      it("should not send an explicit undefined for the absent identifier", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 49080,
+          custom_fields: [{ id: 291, value: "escalated" }],
+        });
+
+        const payload = mockTicketsUpdate.mock.calls[0][1];
+        expect(Object.keys(payload.customfields[0])).toEqual(["id", "value"]);
+      });
+
+      it("should carry a null value through so a field can be cleared", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 49080,
+          custom_fields: [{ id: 291, value: null }],
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(
+          49080,
+          expect.objectContaining({
+            customfields: [{ id: 291, value: null }],
+          })
+        );
+      });
+
+      it("should write custom fields alongside built-in fields", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 49080,
+          status_id: 2,
+          custom_fields: [{ id: 291, value: true }],
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(49080, {
+          summary: undefined,
+          details: undefined,
+          status_id: 2,
+          priority_id: undefined,
+          agent_id: undefined,
+          team_id: undefined,
+          customfields: [{ id: 291, value: true }],
+        });
+      });
+
+      it("should reject an entry identifying no field", async () => {
+        await expect(
+          ticketsHandler.handleCall("halopsa_tickets_update", {
+            ticket_id: 49080,
+            custom_fields: [{ value: true }],
+          })
+        ).rejects.toThrow("needs an id or a name");
+
+        expect(mockTicketsUpdate).not.toHaveBeenCalled();
+      });
+
+      it("should reject an entry with no value", async () => {
+        await expect(
+          ticketsHandler.handleCall("halopsa_tickets_update", {
+            ticket_id: 49080,
+            custom_fields: [{ id: 291 }],
+          })
+        ).rejects.toThrow("needs a value");
+
+        expect(mockTicketsUpdate).not.toHaveBeenCalled();
+      });
+
+      it("should reject custom_fields that is not an array", async () => {
+        await expect(
+          ticketsHandler.handleCall("halopsa_tickets_update", {
+            ticket_id: 49080,
+            custom_fields: { id: 291, value: true },
+          })
+        ).rejects.toThrow("must be an array");
+
+        expect(mockTicketsUpdate).not.toHaveBeenCalled();
       });
     });
 
