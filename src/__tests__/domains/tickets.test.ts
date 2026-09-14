@@ -130,6 +130,16 @@ describe("Tickets Domain Handler", () => {
       expect(listTool?.inputSchema.properties).toHaveProperty("limit");
     });
 
+    it("halopsa_tickets_update should expose agent_id and team_id", () => {
+      const tools = ticketsHandler.getTools();
+      const updateTool = tools.find((t) => t.name === "halopsa_tickets_update");
+
+      expect(updateTool).toBeDefined();
+      expect(updateTool?.inputSchema.required).toContain("ticket_id");
+      expect(updateTool?.inputSchema.properties).toHaveProperty("agent_id");
+      expect(updateTool?.inputSchema.properties).toHaveProperty("team_id");
+    });
+
     it("halopsa_tickets_get should require ticket_id", () => {
       const tools = ticketsHandler.getTools();
       const getTool = tools.find((t) => t.name === "halopsa_tickets_get");
@@ -271,6 +281,23 @@ describe("Tickets Domain Handler", () => {
           status_id: 2,
           priority_id: 1,
           agent_id: undefined,
+          team_id: undefined,
+        });
+      });
+
+      it("should pass team_id to API when reassigning a ticket to a team", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          team_id: 7,
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(1, {
+          summary: undefined,
+          details: undefined,
+          status_id: undefined,
+          priority_id: undefined,
+          agent_id: undefined,
+          team_id: 7,
         });
       });
     });

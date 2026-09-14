@@ -106,7 +106,8 @@ function getTools(): Tool[] {
     },
     {
       name: "halopsa_tickets_update",
-      description: "Update ticket",
+      description:
+        "Update ticket, including reassigning it to a different agent or team",
       inputSchema: {
         type: "object" as const,
         properties: {
@@ -127,6 +128,13 @@ function getTools(): Tool[] {
           },
           agent_id: {
             type: "number",
+            description:
+              "Assigned agent, by ID. Resolve a name to an ID with halopsa_agents_list.",
+          },
+          team_id: {
+            type: "number",
+            description:
+              "Assigned team, by ID. Resolve a name to an ID with halopsa_teams_list.",
           },
         },
         required: ["ticket_id"],
@@ -289,6 +297,7 @@ async function handleCall(
         status_id: args.status_id as number | undefined,
         priority_id: args.priority_id as number | undefined,
         agent_id: args.agent_id as number | undefined,
+        team_id: args.team_id as number | undefined,
       });
 
       return {
