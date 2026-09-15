@@ -451,4 +451,74 @@ describe("Tickets Domain Handler", () => {
       });
     });
   });
+
+
+describe("write tracing", () => {
+  it("traces args, payload and response for an update", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockTicketsUpdate.mockResolvedValue({ id: 50444, team_id: 17 });
+
+    await ticketsHandler.handleCall("halopsa_tickets_update", {
+      ticket_id: 50444,
+      team_id: 17,
+    });
+
+    const lines = spy.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => l.includes("update args") && l.includes("50444"))).toBe(true);
+    expect(lines.some((l) => l.includes("update payload") && l.includes('"team_id":17'))).toBe(true);
+    expect(lines.some((l) => l.includes("update response"))).toBe(true);
+    spy.mockRestore();
+  });
+
+  it("traces the SDK error detail and rethrows", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockTicketsUpdate.mockRejectedValue(
+      Object.assign(new Error("Bad request (400): POST /api/Tickets rejected the request parameters"), {
+        statusCode: 400,
+        response: { error: "team_id is not updatable" },
+      })
+    );
+
+    await expect(
+      ticketsHandler.handleCall("halopsa_tickets_update", { ticket_id: 50444, team_id: 17 })
+    ).rejects.toThrow(/rejected the request parameters/);
+
+    const lines = spy.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => l.includes("update FAILED") && l.includes("status=400"))).toBe(true);
+    expect(
+      lines.some((l) => l.includes("update error.response") && l.includes("team_id is not updatable"))
+    ).toBe(true);
+    spy.mockRestore();
+  });
+
+  it("traces args, payload and response for a create", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockTicketsCreate.mockResolvedValue({ id: 1 });
+
+    await ticketsHandler.handleCall("halopsa_tickets_create", {
+      summary: "hello",
+      client_id: 12,
+      tickettype_id: 3,
+    });
+
+    const lines = spy.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => l.includes("create args") && l.includes("hello"))).toBe(true);
+    expect(lines.some((l) => l.includes("create payload") && l.includes('"client_id":12'))).toBe(true);
+    expect(lines.some((l) => l.includes("create response"))).toBe(true);
+    spy.mockRestore();
+  });
+
+  it("truncates an oversized payload instead of flooding the log", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockTicketsUpdate.mockResolvedValue({ id: 50444, blob: "x".repeat(50000) });
+
+    await ticketsHandler.handleCall("halopsa_tickets_update", { ticket_id: 50444 });
+
+    const line = spy.mock.calls.map((c) => String(c[0])).find((l) => l.includes("update response"));
+    expect(line).toBeDefined();
+    expect(line).toContain("(truncated,");
+    expect(line!.length).toBeLessThan(10000);
+    spy.mockRestore();
+  });
+});
 });

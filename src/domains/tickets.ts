@@ -12,6 +12,57 @@ import { elicitSelection } from "../utils/elicitation.js";
 import { buildTicketCard, TICKET_CARD_META } from "../card.builder.js";
 
 /**
+ * Cap on a single logged payload, in characters. `HALOPSA_TICKET_LOG_MAX=0`
+ * removes the cap. The default keeps one call's trace readable: a Halo ticket
+ * object carries ~300 fields and serialises to over 200 KB, which would bury
+ * the request and error lines that the trace exists to show.
+ */
+const TICKET_LOG_MAX = (() => {
+  const raw = process.env.HALOPSA_TICKET_LOG_MAX;
+  if (raw === undefined) return 8000;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 8000;
+})();
+
+/**
+ * Trace one payload of a ticket write to the console.
+ *
+ * stderr, never stdout: on the stdio transport stdout carries the MCP framing
+ * itself, so a stray console.log corrupts the protocol -- the same reason
+ * index.ts logs through console.error.
+ */
+function logTicket(label: string, value: unknown): void {
+  let text: string;
+  try {
+    text = JSON.stringify(value) ?? String(value);
+  } catch {
+    text = String(value);
+  }
+  if (TICKET_LOG_MAX > 0 && text.length > TICKET_LOG_MAX) {
+    text = `${text.slice(0, TICKET_LOG_MAX)}… (truncated, ${text.length} chars total)`;
+  }
+  console.error(`[halopsa:tickets] ${label} ${text}`);
+}
+
+/**
+ * Trace a failed ticket write, including the detail the SDK hangs off the
+ * error (`statusCode`, parsed `errors`, and HaloPSA's own `response` body) —
+ * for a 400 the message itself names neither the field nor the reason.
+ */
+function logTicketError(tool: string, error: unknown): void {
+  const { statusCode, errors, response } = (
+    typeof error === "object" && error !== null ? error : {}
+  ) as { statusCode?: number; errors?: unknown; response?: unknown };
+
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(
+    `[halopsa:tickets] ${tool} FAILED${statusCode ? ` status=${statusCode}` : ""} ${message}`
+  );
+  if (errors !== undefined) logTicket(`${tool} error.errors`, errors);
+  if (response !== undefined) logTicket(`${tool} error.response`, response);
+}
+
+/**
  * Validate and normalise the custom_fields tool argument.
  *
  * A field is addressed by id or by name -- Halo accepts either, and an agent
@@ -356,36 +407,61 @@ async function handleCall(
     }
 
     case "halopsa_tickets_create": {
-      const ticket = await client.tickets.create({
-        summary: args.summary as string,
-        details: args.details as string | undefined,
-        client_id: args.client_id as number,
-        tickettype_id: args.tickettype_id as number,
-        priority_id: args.priority_id as number | undefined,
-        agent_id: args.agent_id as number | undefined,
-        site_id: args.site_id as number | undefined,
-      });
+      logTicket("create args", args);
+      try {
+        // Logged separately from args: this is what actually goes over the
+        // wire, after the tool arguments are mapped and the absent ones drop
+        // out as undefined.
+        const payload = {
+          summary: args.summary as string,
+          details: args.details as string | undefined,
+          client_id: args.client_id as number,
+          tickettype_id: args.tickettype_id as number,
+          priority_id: args.priority_id as number | undefined,
+          agent_id: args.agent_id as number | undefined,
+          site_id: args.site_id as number | undefined,
+        };
+        logTicket("create payload", payload);
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
-      };
+        const ticket = await client.tickets.create(payload);
+        logTicket("create response", ticket);
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
+        };
+      } catch (error) {
+        logTicketError("create", error);
+        throw error;
+      }
     }
 
     case "halopsa_tickets_update": {
       const ticketId = args.ticket_id as number;
-      const ticket = await client.tickets.update(ticketId, {
-        summary: args.summary as string | undefined,
-        details: args.details as string | undefined,
-        status_id: args.status_id as number | undefined,
-        priority_id: args.priority_id as number | undefined,
-        agent_id: args.agent_id as number | undefined,
-        team_id: args.team_id as number | undefined,
-        customfields: parseCustomFields(args.custom_fields),
-      });
+      // Before parseCustomFields, so a rejected custom_fields argument is still
+      // traced alongside the input that caused it.
+      logTicket("update args", args);
+      try {
+        const payload = {
+          summary: args.summary as string | undefined,
+          details: args.details as string | undefined,
+          status_id: args.status_id as number | undefined,
+          priority_id: args.priority_id as number | undefined,
+          agent_id: args.agent_id as number | undefined,
+          team_id: args.team_id as number | undefined,
+          customfields: parseCustomFields(args.custom_fields),
+        };
+        logTicket("update payload", { id: ticketId, ...payload });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
-      };
+        const ticket = await client.tickets.update(ticketId, payload);
+        logTicket("update response", ticket);
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
+        };
+      } catch (error) {
+        logTicketError("update", error);
+        throw error;
+      }
     }
 
     case "halopsa_tickets_add_action": {
