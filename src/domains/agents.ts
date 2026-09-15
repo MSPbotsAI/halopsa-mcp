@@ -7,6 +7,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { DomainHandler, CallToolResult } from "../utils/types.js";
 import { getClient } from "../utils/client.js";
+import { readHaloAgentId } from "../utils/agent-id.js";
 
 /**
  * Normalise a Halo list response into a record count plus its rows.
@@ -100,15 +101,17 @@ function getTools(): Tool[] {
     },
     {
       name: "halopsa_agents_get",
-      description: "Get technician details by ID",
+      description: "Get technician details by HaloPSA agent ID",
       inputSchema: {
         type: "object" as const,
         properties: {
-          agent_id: {
+          halo_agent_id: {
             type: "number",
+            description:
+              "ID of an agent in HaloPSA, as returned by halopsa_agents_list. Not an agent ID from the calling platform.",
           },
         },
-        required: ["agent_id"],
+        required: ["halo_agent_id"],
       },
     },
     {
@@ -149,7 +152,7 @@ async function handleCall(
     }
 
     case "halopsa_agents_get": {
-      const agentId = args.agent_id as number;
+      const agentId = readHaloAgentId(args, { required: true }) as number;
       const agent = await client.agents.get(agentId);
 
       return {

@@ -130,13 +130,13 @@ describe("Tickets Domain Handler", () => {
       expect(listTool?.inputSchema.properties).toHaveProperty("limit");
     });
 
-    it("halopsa_tickets_update should expose agent_id and team_id", () => {
+    it("halopsa_tickets_update should expose halo_agent_id and team_id", () => {
       const tools = ticketsHandler.getTools();
       const updateTool = tools.find((t) => t.name === "halopsa_tickets_update");
 
       expect(updateTool).toBeDefined();
       expect(updateTool?.inputSchema.required).toContain("ticket_id");
-      expect(updateTool?.inputSchema.properties).toHaveProperty("agent_id");
+      expect(updateTool?.inputSchema.properties).toHaveProperty("halo_agent_id");
       expect(updateTool?.inputSchema.properties).toHaveProperty("team_id");
     });
 
@@ -238,7 +238,7 @@ describe("Tickets Domain Handler", () => {
           client_id: 5,
           tickettype_id: 1,
           priority_id: 3,
-          agent_id: 10,
+          halo_agent_id: 10,
           site_id: 2,
         });
 

@@ -8,6 +8,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { CustomField } from "@wyre-ai/node-halopsa";
 import type { DomainHandler, CallToolResult } from "../utils/types.js";
 import { getClient } from "../utils/client.js";
+import { readHaloAgentId } from "../utils/agent-id.js";
 import { elicitSelection } from "../utils/elicitation.js";
 import { buildTicketCard, TICKET_CARD_META } from "../card.builder.js";
 
@@ -135,8 +136,10 @@ function getTools(): Tool[] {
           status_id: {
             type: "number",
           },
-          agent_id: {
+          halo_agent_id: {
             type: "number",
+            description:
+              "ID of an agent in HaloPSA, as returned by halopsa_agents_list. Not an agent ID from the calling platform.",
           },
           open_only: {
             type: "boolean",
@@ -202,8 +205,10 @@ function getTools(): Tool[] {
           priority_id: {
             type: "number",
           },
-          agent_id: {
+          halo_agent_id: {
             type: "number",
+            description:
+              "ID of an agent in HaloPSA, as returned by halopsa_agents_list. Not an agent ID from the calling platform.",
           },
           site_id: {
             type: "number",
@@ -234,10 +239,10 @@ function getTools(): Tool[] {
           priority_id: {
             type: "number",
           },
-          agent_id: {
+          halo_agent_id: {
             type: "number",
             description:
-              "Assigned agent, by ID. Resolve a name to an ID with halopsa_agents_list.",
+              "Assigned agent, by HaloPSA agent ID. Resolve a name to an ID with halopsa_agents_list. Not an agent ID from the calling platform.",
           },
           team_id: {
             type: "number",
@@ -321,8 +326,10 @@ async function handleCall(
       let openOnly = args.open_only as boolean | undefined;
       const closedOnly = args.closed_only as boolean | undefined;
 
+      const haloAgentId = readHaloAgentId(args);
+
       const hasFilters =
-        args.client_id || args.status_id || args.agent_id ||
+        args.client_id || args.status_id || args.halo_agent_id ||
         args.open_only !== undefined || args.closed_only !== undefined ||
         dateStart || dateEnd;
 
@@ -347,7 +354,7 @@ async function handleCall(
       const response = await client.tickets.list({
         client_id: args.client_id as number | undefined,
         status_id: args.status_id as number | undefined,
-        agent_id: args.agent_id as number | undefined,
+        agent_id: haloAgentId,
         open_only: openOnly,
         closed_only: closedOnly,
         dateoccurred_start: dateStart,
@@ -409,6 +416,7 @@ async function handleCall(
     case "halopsa_tickets_create": {
       logTicket("create args", args);
       try {
+        const haloAgentId = readHaloAgentId(args);
         // Logged separately from args: this is what actually goes over the
         // wire, after the tool arguments are mapped and the absent ones drop
         // out as undefined.
@@ -418,7 +426,7 @@ async function handleCall(
           client_id: args.client_id as number,
           tickettype_id: args.tickettype_id as number,
           priority_id: args.priority_id as number | undefined,
-          agent_id: args.agent_id as number | undefined,
+          agent_id: haloAgentId,
           site_id: args.site_id as number | undefined,
         };
         logTicket("create payload", payload);
@@ -441,12 +449,13 @@ async function handleCall(
       // traced alongside the input that caused it.
       logTicket("update args", args);
       try {
+        const haloAgentId = readHaloAgentId(args);
         const payload = {
           summary: args.summary as string | undefined,
           details: args.details as string | undefined,
           status_id: args.status_id as number | undefined,
           priority_id: args.priority_id as number | undefined,
-          agent_id: args.agent_id as number | undefined,
+          agent_id: haloAgentId,
           team_id: args.team_id as number | undefined,
           customfields: parseCustomFields(args.custom_fields),
         };

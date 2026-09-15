@@ -95,12 +95,12 @@ describe("Agents Domain Handler", () => {
       expect(listTool?.inputSchema.properties).toHaveProperty("limit");
     });
 
-    it("halopsa_agents_get should require agent_id", () => {
+    it("halopsa_agents_get should require halo_agent_id", () => {
       const tools = agentsHandler.getTools();
       const getTool = tools.find((t) => t.name === "halopsa_agents_get");
 
       expect(getTool).toBeDefined();
-      expect(getTool?.inputSchema.required).toContain("agent_id");
+      expect(getTool?.inputSchema.required).toContain("halo_agent_id");
     });
 
     it("halopsa_teams_list should have optional limit parameter", () => {
@@ -144,7 +144,7 @@ describe("Agents Domain Handler", () => {
     describe("halopsa_agents_get", () => {
       it("should get a single agent", async () => {
         const result = await agentsHandler.handleCall("halopsa_agents_get", {
-          agent_id: 1,
+          halo_agent_id: 1,
         });
 
         expect(result.isError).toBeUndefined();
