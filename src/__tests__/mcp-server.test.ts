@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { buildCredentials } from "../mcp-server.js";
+import { buildCredentials, formatToolError } from "../mcp-server.js";
 
 describe("buildCredentials", () => {
   it("returns an error when the client id or secret is missing", () => {
@@ -74,5 +74,57 @@ describe("buildCredentials", () => {
     );
     expect(creds).toBeUndefined();
     expect(error).toMatch(/Missing tenant/);
+  });
+});
+describe("formatToolError", () => {
+  // Regression: a HaloPSA 400 used to reach the caller as the SDK's bare
+  // template ("... rejected the request parameters"), naming neither the field
+  // nor the reason, because only `error.message` was surfaced.
+  it("appends the HaloPSA response body to a bad-request message", () => {
+    const err = Object.assign(
+      new Error(
+        "Bad request (400): POST https://acme.halopsa.com/api/Tickets rejected the request parameters"
+      ),
+      { statusCode: 400, response: { error: "team_id is not updatable" } }
+    );
+    const text = formatToolError(err);
+    expect(text).toContain("rejected the request parameters");
+    expect(text).toContain('HaloPSA response: {"error":"team_id is not updatable"}');
+  });
+
+  it("lists field-level validation errors", () => {
+    const err = Object.assign(new Error("Validation error"), {
+      statusCode: 400,
+      errors: [
+        { field: "team_id", message: "must be an existing team" },
+        { field: "summary", message: "required" },
+      ],
+      response: { detail: "see errors" },
+    });
+    const text = formatToolError(err);
+    expect(text).toContain("Field errors: team_id: must be an existing team; summary: required");
+    expect(text).toContain('HaloPSA response: {"detail":"see errors"}');
+  });
+
+  it("truncates an oversized response body", () => {
+    const err = Object.assign(new Error("Bad request (400)"), {
+      response: "x".repeat(5000),
+    });
+    const text = formatToolError(err);
+    expect(text).toContain("(truncated)");
+    expect(text.length).toBeLessThan(2500);
+  });
+
+  it("leaves a plain error untouched", () => {
+    expect(formatToolError(new Error("Resource not found"))).toBe("Resource not found");
+  });
+
+  it("omits an empty or absent response body", () => {
+    expect(formatToolError(Object.assign(new Error("boom"), { response: {} }))).toBe("boom");
+    expect(formatToolError(Object.assign(new Error("boom"), { response: null }))).toBe("boom");
+  });
+
+  it("handles non-Error throws", () => {
+    expect(formatToolError("just a string")).toBe("just a string");
   });
 });

@@ -179,6 +179,62 @@ export function resolveGatewayCredentials(
   );
 }
 
+/** Cap on the HaloPSA response body echoed back in an error, in characters. */
+const MAX_ERROR_BODY_CHARS = 2000;
+
+/**
+ * Build the text surfaced to the MCP client for a failed tool call.
+ *
+ * The SDK attaches HaloPSA's own response to its errors (`HaloPsaError.response`,
+ * plus field-level `HaloPsaValidationError.errors`), but the messages it builds
+ * for a 400 are templates that name nothing — e.g. "Bad request (400): POST
+ * https://<tenant>.halopsa.com/api/Tickets rejected the request parameters".
+ * Surfacing only `error.message` therefore discards the one description of what
+ * HaloPSA actually rejected, which is precisely what the caller needs to fix the
+ * arguments. Field errors come first because they are already parsed; the raw
+ * body follows for the 400s the SDK does not recognise as validation errors.
+ */
+export function formatToolError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (typeof error !== "object" || error === null) {
+    return message;
+  }
+
+  // Duck-typed rather than `instanceof`: the error may cross a bundle boundary
+  // (Workers build) where the SDK's classes are not reference-equal.
+  const { errors, response } = error as {
+    errors?: Array<{ field?: string; message?: string }>;
+    response?: unknown;
+  };
+  const parts = [message];
+
+  if (Array.isArray(errors) && errors.length > 0) {
+    const fields = errors
+      .map((e) => `${e.field ?? "(unknown field)"}: ${e.message ?? ""}`.trim())
+      .join("; ");
+    parts.push(`Field errors: ${fields}`);
+  }
+
+  if (response !== undefined && response !== null && response !== "") {
+    let body: string;
+    try {
+      body =
+        typeof response === "string" ? response : JSON.stringify(response);
+    } catch {
+      body = String(response);
+    }
+    if (body && body !== "{}" && body !== "null") {
+      parts.push(
+        body.length > MAX_ERROR_BODY_CHARS
+          ? `HaloPSA response: ${body.slice(0, MAX_ERROR_BODY_CHARS)}… (truncated)`
+          : `HaloPSA response: ${body}`
+      );
+    }
+  }
+
+  return parts.join(" | ");
+}
+
 /**
  * Create a fresh MCP server instance with all handlers registered.
  * Called once for stdio, or per-request for HTTP / Workers transports.
@@ -311,9 +367,8 @@ export function createMcpServer(): Server {
         isError: true,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
       return {
-        content: [{ type: "text", text: `Error: ${message}` }],
+        content: [{ type: "text", text: `Error: ${formatToolError(error)}` }],
         isError: true,
       };
     }
