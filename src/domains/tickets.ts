@@ -9,6 +9,7 @@ import type { CustomField } from "@wyre-ai/node-halopsa";
 import type { DomainHandler, CallToolResult } from "../utils/types.js";
 import { getClient } from "../utils/client.js";
 import { readHaloAgentId } from "../utils/agent-id.js";
+import { compactTicket, FULL_RESPONSE_SCHEMA } from "../utils/ticket-shape.js";
 import { elicitSelection } from "../utils/elicitation.js";
 import { buildTicketCard, TICKET_CARD_META } from "../card.builder.js";
 
@@ -61,6 +62,21 @@ function logTicketError(tool: string, error: unknown): void {
   );
   if (errors !== undefined) logTicket(`${tool} error.errors`, errors);
   if (response !== undefined) logTicket(`${tool} error.response`, response);
+}
+
+/**
+ * Apply the response shape the caller asked for: HaloPSA's reply verbatim when
+ * `full_response` is set, otherwise with its expanded reference records
+ * collapsed (see utils/ticket-shape).
+ */
+function shape(
+  // The SDK's Ticket is a closed interface with no index signature; the ticket
+  // is plain JSON either way, and the shaping is purely structural.
+  ticket: object,
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  const record = ticket as Record<string, unknown>;
+  return args.full_response === true ? record : compactTicket(record);
 }
 
 /**
@@ -180,6 +196,7 @@ function getTools(): Tool[] {
             type: "boolean",
             description: "Include actions/notes",
           },
+          full_response: FULL_RESPONSE_SCHEMA,
         },
         required: ["ticket_id"],
       },
@@ -213,6 +230,7 @@ function getTools(): Tool[] {
           site_id: {
             type: "number",
           },
+          full_response: FULL_RESPONSE_SCHEMA,
         },
         required: ["summary", "client_id", "tickettype_id"],
       },
@@ -274,6 +292,7 @@ function getTools(): Tool[] {
               required: ["value"],
             },
           },
+          full_response: FULL_RESPONSE_SCHEMA,
         },
         required: ["ticket_id"],
       },
@@ -407,7 +426,7 @@ async function handleCall(
         content: [
           {
             type: "text",
-            text: JSON.stringify(payload, null, 2),
+            text: JSON.stringify(shape(payload, args), null, 2),
           },
         ],
       };
@@ -435,7 +454,9 @@ async function handleCall(
         logTicket("create response", ticket);
 
         return {
-          content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
+          content: [
+            { type: "text", text: JSON.stringify(shape(ticket, args), null, 2) },
+          ],
         };
       } catch (error) {
         logTicketError("create", error);
@@ -465,7 +486,9 @@ async function handleCall(
         logTicket("update response", ticket);
 
         return {
-          content: [{ type: "text", text: JSON.stringify(ticket, null, 2) }],
+          content: [
+            { type: "text", text: JSON.stringify(shape(ticket, args), null, 2) },
+          ],
         };
       } catch (error) {
         logTicketError("update", error);
