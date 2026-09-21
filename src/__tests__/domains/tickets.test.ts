@@ -252,6 +252,19 @@ describe("Tickets Domain Handler", () => {
           site_id: 2,
         });
       });
+
+      it("should pass category_1..4 to API on create", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_create", {
+          summary: "New ticket",
+          client_id: 5,
+          tickettype_id: 1,
+          category_1: "Hardware>Laptop",
+        });
+
+        expect(mockTicketsCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ category_1: "Hardware>Laptop" })
+        );
+      });
     });
 
     describe("halopsa_tickets_update", () => {
@@ -284,6 +297,35 @@ describe("Tickets Domain Handler", () => {
           team_id: undefined,
           customfields: undefined,
         });
+      });
+
+      it("should pass category_1..4 to API as the value strings Halo expects", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          category_1: "Hardware>Laptop",
+          category_3: "Billing",
+        });
+
+        expect(mockTicketsUpdate).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({
+            category_1: "Hardware>Laptop",
+            category_3: "Billing",
+          })
+        );
+      });
+
+      it("should leave categories alone when the caller does not mention them", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          summary: "Updated",
+        });
+
+        const payload = mockTicketsUpdate.mock.calls[0][1];
+        expect(payload).not.toHaveProperty("category_1");
+        expect(payload).not.toHaveProperty("category_2");
+        expect(payload).not.toHaveProperty("category_3");
+        expect(payload).not.toHaveProperty("category_4");
       });
 
       it("should pass team_id to API when reassigning a ticket to a team", async () => {

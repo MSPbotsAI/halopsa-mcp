@@ -136,6 +136,40 @@ function parseCustomFields(raw: unknown): CustomField[] | undefined {
 }
 
 /**
+ * Read the category_1..category_4 arguments into the shape the SDK writes.
+ *
+ * Only the ones the caller actually passed are returned. An update that says
+ * nothing about categories must leave the ticket's existing ones alone, and
+ * naming a key with an undefined value is the kind of thing that survives one
+ * serialiser and clears the field in the next.
+ */
+function readCategories(
+  args: Record<string, unknown>
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of ["category_1", "category_2", "category_3", "category_4"]) {
+    const value = args[key];
+    if (typeof value === "string") out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Schema for one of Halo's four ticket categorisation fields.
+ *
+ * Halo takes these as the category's full path string, not its id -- the same
+ * `value` that halopsa_lookups_get returns for a categories row. Passing an id
+ * here silently stores the digits as the category name.
+ */
+const CATEGORY_SCHEMA = (n: 1 | 2 | 3 | 4) => ({
+  type: "string" as const,
+  description:
+    `Category ${n} as its full path string, e.g. "Hardware>Laptop". ` +
+    `Resolve one with halopsa_lookups_get (kinds: ["categories"], category_type_id: ${n}) ` +
+    `and pass that row's \`value\` verbatim; this is not an id field.`,
+});
+
+/**
  * Get ticket domain tools
  */
 function getTools(): Tool[] {
@@ -230,6 +264,10 @@ function getTools(): Tool[] {
           site_id: {
             type: "number",
           },
+          category_1: CATEGORY_SCHEMA(1),
+          category_2: CATEGORY_SCHEMA(2),
+          category_3: CATEGORY_SCHEMA(3),
+          category_4: CATEGORY_SCHEMA(4),
           full_response: FULL_RESPONSE_SCHEMA,
         },
         required: ["summary", "client_id", "tickettype_id"],
@@ -267,6 +305,10 @@ function getTools(): Tool[] {
             description:
               "Assigned team, by ID. Resolve a name to an ID with halopsa_teams_list.",
           },
+          category_1: CATEGORY_SCHEMA(1),
+          category_2: CATEGORY_SCHEMA(2),
+          category_3: CATEGORY_SCHEMA(3),
+          category_4: CATEGORY_SCHEMA(4),
           custom_fields: {
             type: "array",
             description:
@@ -447,6 +489,7 @@ async function handleCall(
           priority_id: args.priority_id as number | undefined,
           agent_id: haloAgentId,
           site_id: args.site_id as number | undefined,
+          ...readCategories(args),
         };
         logTicket("create payload", payload);
 
@@ -478,6 +521,7 @@ async function handleCall(
           priority_id: args.priority_id as number | undefined,
           agent_id: haloAgentId,
           team_id: args.team_id as number | undefined,
+          ...readCategories(args),
           customfields: parseCustomFields(args.custom_fields),
         };
         logTicket("update payload", { id: ticketId, ...payload });

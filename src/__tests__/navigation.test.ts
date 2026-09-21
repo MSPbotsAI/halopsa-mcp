@@ -42,6 +42,12 @@ const { mockHandlers } = vi.hoisted(() => {
       ]),
       handleCall: vi.fn(),
     },
+    lookups: {
+      getTools: vi.fn().mockReturnValue([
+        { name: "halopsa_lookups_get", description: "Read reference tables" },
+      ]),
+      handleCall: vi.fn(),
+    },
   };
 
   return { mockHandlers };
@@ -66,6 +72,10 @@ vi.mock("../domains/agents.js", () => ({
 
 vi.mock("../domains/invoices.js", () => ({
   invoicesHandler: mockHandlers.invoices,
+}));
+
+vi.mock("../domains/lookups.js", () => ({
+  lookupsHandler: mockHandlers.lookups,
 }));
 
 import {
@@ -101,6 +111,9 @@ describe("Domain Navigation", () => {
       { name: "halopsa_invoices_list", description: "List invoices" },
       { name: "halopsa_invoices_get", description: "Get invoice" },
     ]);
+    mockHandlers.lookups.getTools.mockReturnValue([
+      { name: "halopsa_lookups_get", description: "Read reference tables" },
+    ]);
   });
 
   describe("getAvailableDomains", () => {
@@ -113,6 +126,7 @@ describe("Domain Navigation", () => {
         "assets",
         "agents",
         "invoices",
+        "lookups",
       ]);
     });
 
@@ -131,6 +145,7 @@ describe("Domain Navigation", () => {
       expect(isDomainName("assets")).toBe(true);
       expect(isDomainName("agents")).toBe(true);
       expect(isDomainName("invoices")).toBe(true);
+      expect(isDomainName("lookups")).toBe(true);
     });
 
     it("should return false for invalid domain names", () => {
@@ -169,6 +184,13 @@ describe("Domain Navigation", () => {
 
       expect(handler).toBeDefined();
       expect(handler.getTools()).toHaveLength(2);
+    });
+
+    it("should load lookups domain handler", async () => {
+      const handler = await getDomainHandler("lookups");
+
+      expect(handler).toBeDefined();
+      expect(handler.getTools()).toHaveLength(1);
     });
 
     it("should load invoices domain handler", async () => {
@@ -235,6 +257,9 @@ describe("Domain Tools Structure", () => {
       { name: "halopsa_invoices_list", description: "List invoices" },
       { name: "halopsa_invoices_get", description: "Get invoice" },
     ]);
+    mockHandlers.lookups.getTools.mockReturnValue([
+      { name: "halopsa_lookups_get", description: "Read reference tables" },
+    ]);
   });
 
   it("tickets domain should expose ticket-specific tools", async () => {
@@ -271,6 +296,13 @@ describe("Domain Tools Structure", () => {
     const toolNames = tools.map((t) => t.name);
     expect(toolNames).toContain("halopsa_agents_list");
     expect(toolNames).toContain("halopsa_agents_get");
+  });
+
+  it("lookups domain should expose the reference-table tool", async () => {
+    const handler = await getDomainHandler("lookups");
+    const tools = handler.getTools();
+
+    expect(tools.map((t) => t.name)).toContain("halopsa_lookups_get");
   });
 
   it("invoices domain should expose invoice-specific tools", async () => {

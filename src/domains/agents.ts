@@ -8,71 +8,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { DomainHandler, CallToolResult } from "../utils/types.js";
 import { getClient } from "../utils/client.js";
 import { readHaloAgentId } from "../utils/agent-id.js";
-
-/**
- * Normalise a Halo list response into a record count plus its rows.
- *
- * Halo is not consistent about how it wraps list endpoints. /Tickets and
- * /Client answer with `{ record_count, tickets | clients }`, which is the shape
- * the SDK's typings describe and the shape the callers below used to assume.
- * /Team and /Agent do not: against a live tenant halopsa_teams_list returned
- * `{}` and halopsa_agents_list returned `{ record_count: 21 }` with no rows,
- * because reading a fixed key off the response found `undefined` and
- * JSON.stringify then dropped the key entirely. The tool reported success while
- * handing back nothing, which is the worst way for this to fail -- an agent
- * cannot resolve a team or technician name to an id, and has no clue why.
- *
- * So take the rows from wherever they actually are: the named key, the response
- * itself when the endpoint answers with a bare array, or the sole array-valued
- * property when Halo names it something else. Only a single candidate is
- * accepted; guessing between several arrays would trade a visible failure for a
- * silent wrong answer.
- *
- * When no rows can be found the raw response is passed through rather than
- * discarded, so the caller sees what Halo actually sent instead of an empty
- * object. record_count prefers the value Halo reported and falls back to the
- * row count, which keeps "there are genuinely no rows" distinguishable from
- * "there are rows and we failed to locate them".
- */
-function unwrapList(
-  response: unknown,
-  key: string
-): { record_count: number; rows: unknown[]; unrecognised?: unknown } {
-  if (Array.isArray(response)) {
-    return { record_count: response.length, rows: response };
-  }
-  if (!response || typeof response !== "object") {
-    return { record_count: 0, rows: [], unrecognised: response };
-  }
-
-  const obj = response as Record<string, unknown>;
-  const reported = typeof obj.record_count === "number" ? obj.record_count : undefined;
-
-  let rows = obj[key];
-  if (!Array.isArray(rows)) {
-    const arrays = Object.values(obj).filter(Array.isArray);
-    rows = arrays.length === 1 ? arrays[0] : undefined;
-  }
-
-  if (!Array.isArray(rows)) {
-    return { record_count: reported ?? 0, rows: [], unrecognised: response };
-  }
-  return { record_count: reported ?? rows.length, rows };
-}
-
-/**
- * Render an unwrapped list as the tool's text payload.
- */
-function listResult(response: unknown, key: string): CallToolResult {
-  const { record_count, rows, unrecognised } = unwrapList(response, key);
-  const payload: Record<string, unknown> = { record_count, [key]: rows };
-  if (unrecognised !== undefined) {
-    payload.unrecognised_response = unrecognised;
-  }
-  return {
-    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
-  };
-}
+import { listResult } from "../utils/list-shape.js";
 
 /**
  * Get agent domain tools

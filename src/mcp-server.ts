@@ -33,7 +33,13 @@ export type { HaloPsaCredentials };
 /**
  * Available domains for navigation
  */
-type Domain = "tickets" | "clients" | "assets" | "agents" | "invoices";
+type Domain =
+  | "tickets"
+  | "clients"
+  | "assets"
+  | "agents"
+  | "invoices"
+  | "lookups";
 
 /**
  * Domain metadata for navigation
@@ -44,6 +50,8 @@ const domainDescriptions: Record<Domain, string> = {
   assets: "Asset management - list and get hardware/software assets, configurations",
   agents: "Agent management - list and get support staff and technician information",
   invoices: "Invoice management - list and get billing and invoice information",
+  lookups:
+    "Reference data - read the tenant's ticket statuses, priorities, ticket types and Category 1-4 values, so ids and category strings are resolved live instead of hardcoded",
 };
 
 /**
@@ -69,7 +77,8 @@ const navigateTool: Tool = {
 - clients: ${domainDescriptions.clients}
 - assets: ${domainDescriptions.assets}
 - agents: ${domainDescriptions.agents}
-- invoices: ${domainDescriptions.invoices}`,
+- invoices: ${domainDescriptions.invoices}
+- lookups: ${domainDescriptions.lookups}`,
       },
     },
     required: ["domain"],
@@ -353,6 +362,10 @@ export function createMcpServer(): Server {
       }
       if (name.startsWith("halopsa_invoices_")) {
         const handler = await getDomainHandler("invoices");
+        return await handler.handleCall(name, toolArgs);
+      }
+      if (name.startsWith("halopsa_lookups_")) {
+        const handler = await getDomainHandler("lookups");
         return await handler.handleCall(name, toolArgs);
       }
 

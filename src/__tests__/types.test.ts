@@ -14,6 +14,7 @@ describe("Types", () => {
         "assets",
         "agents",
         "invoices",
+        "lookups",
       ];
 
       for (const domain of validDomains) {
@@ -97,6 +98,8 @@ describe("DomainName type", () => {
           return "agents";
         case "invoices":
           return "invoices";
+        case "lookups":
+          return "lookups";
         default: {
           // This line should never be reached if DomainName is exhaustive
           const _exhaustiveCheck: never = domain;
@@ -111,5 +114,6 @@ describe("DomainName type", () => {
     expect(handleDomain("assets")).toBe("assets");
     expect(handleDomain("agents")).toBe("agents");
     expect(handleDomain("invoices")).toBe("invoices");
+    expect(handleDomain("lookups")).toBe("lookups");
   });
 });
