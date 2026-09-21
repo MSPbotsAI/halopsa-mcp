@@ -82,11 +82,11 @@ export function listResult(response: unknown, key: string): CallToolResult {
 /**
  * Keep only the listed fields of a row, dropping the ones Halo did not send.
  *
- * Reference rows are wide -- Halo's RequestType schema alone carries 445
- * properties -- and almost all of that is configuration an agent resolving a
- * name to an id has no use for. Passing the rows through untouched would spend
- * most of a context window on fields nobody reads, so each lookup declares the
- * handful it wants and everything else is dropped.
+ * Reference rows are wide -- a live tenant's /Status, /TicketType and /Priority
+ * rows run to 22-26 properties each -- and almost all of that is SLA timers,
+ * email templates and workflow switches that a caller resolving a name to an id
+ * has no use for. So each lookup declares the handful it wants and everything
+ * else is dropped.
  *
  * Absent keys are skipped rather than emitted as null: which optional fields a
  * tenant populates varies, and a row of nulls reads as "Halo has no value here"

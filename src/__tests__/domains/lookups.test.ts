@@ -261,6 +261,71 @@ describe("Lookups Domain Handler", () => {
       expect(payload.categories.rows[0].value).toBe("Hardware>Laptop");
     });
 
+    it("warns that a priority is written by priorityid, not the GUID id", async () => {
+      // A live tenant returns id as the SLA-policy GUID and priorityid as the
+      // number halopsa_tickets_update wants. Handing both over without saying
+      // which is which is how an agent ends up posting a GUID as priority_id.
+      mockPrioritiesList.mockResolvedValue([
+        {
+          id: "c183eb27-0a8a-4380-59fa-08d5c0811dad",
+          name: "Urgent",
+          priorityid: 1,
+          slaid: 2,
+        },
+      ]);
+
+      const payload = parse(
+        await lookupsHandler.handleCall("halopsa_lookups_get", {
+          kinds: ["priorities"],
+        })
+      );
+
+      expect(payload.priorities.note).toContain("priorityid");
+      expect(payload.priorities.rows[0]).toMatchObject({
+        id: "c183eb27-0a8a-4380-59fa-08d5c0811dad",
+        priorityid: 1,
+        slaid: 2,
+      });
+    });
+
+    it("keeps the ticket type defaults a caller would otherwise have to guess", async () => {
+      mockTicketTypesList.mockResolvedValue([
+        {
+          id: 22,
+          name: "Incident",
+          default_sla: 1,
+          default_priority: 4,
+          default_team: "1st Line Support",
+          kanbanstatuschoice_list: "[]",
+        },
+      ]);
+
+      const payload = parse(
+        await lookupsHandler.handleCall("halopsa_lookups_get", {
+          kinds: ["ticket_types"],
+        })
+      );
+
+      expect(payload.ticket_types.rows[0]).toMatchObject({
+        default_sla: 1,
+        default_priority: 4,
+        default_team: "1st Line Support",
+      });
+      expect(payload.ticket_types.rows[0]).not.toHaveProperty(
+        "kanbanstatuschoice_list"
+      );
+    });
+
+    it("says what a status `type` actually means", async () => {
+      const payload = parse(
+        await lookupsHandler.handleCall("halopsa_lookups_get", {
+          kinds: ["statuses"],
+        })
+      );
+
+      expect(payload.statuses.note).toContain("not open vs closed");
+    });
+
     it("rejects an unknown tool name", async () => {
       const result = await lookupsHandler.handleCall("halopsa_lookups_nope", {});
       expect(result.isError).toBe(true);

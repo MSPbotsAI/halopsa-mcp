@@ -41,15 +41,22 @@ const DEFAULT_LIMIT = 200;
 /**
  * Fields kept per kind.
  *
- * Deliberately short. Halo's ticket-type rows carry 445 properties, nearly all
- * of it workflow configuration that has nothing to do with resolving a name to
- * an id, and returning them whole would cost more context than the answer is
- * worth. Set full_response to get the rows as Halo sent them.
+ * Deliberately short, and chosen against what a live tenant actually sends
+ * rather than what the SDK's typings promise. A /Status row arrives with 26
+ * properties, a /TicketType row with 26, a /Priority row with 22 -- mostly SLA
+ * timers, email templates and load-balancing switches that an agent resolving a
+ * name to an id has no use for. Projecting cuts a reply to roughly a third.
+ * Set full_response to get the rows as Halo sent them.
+ *
+ * Fields the SDK declares but a live HaloPSA 2.x tenant did not return
+ * (statuses' isopen / isdefault / ticket_count, ticket types' inactive) are
+ * kept in the lists anyway: pickFields drops what is absent, so listing them
+ * costs nothing and picks them up on a build or a query that does supply them.
  */
 const FIELDS: Record<LookupKind, readonly string[]> = {
-  // `type` groups Halo's statuses by what they attach to (tickets vs
-  // opportunities vs projects); `tickettypes` lists the ticket types a status
-  // is restricted to, which is why an id valid on one type rejects on another.
+  // `type` is the entity class the status belongs to (0 tickets, 1 orders,
+  // 2 items, 3 internal), NOT open vs closed -- Halo sends no open/closed flag
+  // on a /Status row, so "Closed" is only recognisable by name and sequence.
   statuses: [
     "id",
     "name",
@@ -57,25 +64,30 @@ const FIELDS: Record<LookupKind, readonly string[]> = {
     "type",
     "sequence",
     "colour",
+    "slaaction",
+    "showonquickchange",
     "isopen",
     "isdefault",
     "ticket_count",
   ],
-  // Halo models priorities as SLA policies, so a priority row carries the
-  // response/fix targets and the SLA it belongs to alongside its name.
+  // `id` here is the SLA-policy row's GUID, not the number a ticket wants --
+  // see the note below. The time fields are meaningless without their units,
+  // so both travel together.
   priorities: [
     "id",
     "name",
     "priorityid",
     "slaid",
-    "sla_id",
     "colour",
     "sortorder",
     "fixtime",
+    "fixunits",
     "responsetime",
+    "responseunits",
+    "ishidden",
   ],
-  // default_category_1..4 are included because they tell the caller what a
-  // ticket of this type will be categorised as if it says nothing.
+  // The defaults are what a ticket of this type gets when the caller says
+  // nothing, which is worth knowing before deciding to say something.
   ticket_types: [
     "id",
     "name",
@@ -83,13 +95,14 @@ const FIELDS: Record<LookupKind, readonly string[]> = {
     "sequence",
     "group_id",
     "group_name",
-    "inactive",
     "cancreate",
     "agentscanselect",
-    "default_category_1",
-    "default_category_2",
-    "default_category_3",
-    "default_category_4",
+    "enduserscanselect",
+    "visible",
+    "inactive",
+    "default_sla",
+    "default_priority",
+    "default_team",
   ],
   // `value` is the field that matters: it is the full path string
   // ("Hardware>Laptop") that a ticket write expects, not the id.
@@ -111,7 +124,11 @@ const NOTES: Partial<Record<LookupKind, string>> = {
   categories:
     "type_id selects which of Halo's four categorisation trees a row belongs to: 1 = Category 1, 2 = Category 2, 3 = Category 3, 4 = Category 4. Write a category onto a ticket with the row's `value` string (e.g. \"Hardware>Laptop\"), not its id, via the category_1..category_4 arguments of halopsa_tickets_create / halopsa_tickets_update.",
   statuses:
-    "A status can be restricted to particular ticket types. Pass tickettype_id to see only the statuses that ticket type accepts.",
+    "`type` is the entity class the status applies to (0 tickets, 1 orders, 2 items, 3 internal), not open vs closed -- Halo returns no open/closed flag here. A status can also be restricted to particular ticket types; pass tickettype_id to ask Halo to narrow the list, though whether it narrows anything depends on how the tenant is configured.",
+  priorities:
+    "Use `priorityid`, not `id`, as the priority_id argument of halopsa_tickets_create / halopsa_tickets_update: Halo models priorities as SLA policies, so `id` is the policy row's GUID while `priorityid` is the number a ticket carries. Expect the same priority once per SLA -- `priorityid` is only unique within one `slaid`, so match the ticket's SLA when two rows share a number.",
+  ticket_types:
+    "`default_sla`, `default_priority` and `default_team` are what a ticket of this type gets when the caller specifies nothing. default_priority is a priorityid, matching the priorities kind.",
 };
 
 /**
@@ -245,7 +262,7 @@ function getTools(): Tool[] {
           tickettype_id: {
             type: "number",
             description:
-              "Restrict statuses and categories to those valid for this ticket type, as returned by the ticket_types kind. Strongly recommended before creating or updating a ticket: Halo rejects a status or category the ticket type does not allow.",
+              "Ask Halo to restrict statuses and categories to those valid for this ticket type, as returned by the ticket_types kind. Worth passing before creating or updating a ticket, since Halo rejects a status or category the ticket type does not allow -- but whether it actually narrows the list depends on how the tenant configured those restrictions.",
           },
           include_inactive: {
             type: "boolean",
@@ -259,7 +276,7 @@ function getTools(): Tool[] {
           full_response: {
             type: "boolean",
             description:
-              "Return rows exactly as HaloPSA sends them instead of the fields needed to identify a value. Off by default: a single ticket-type row carries 445 properties, almost all of it workflow configuration.",
+              "Return rows exactly as HaloPSA sends them instead of the fields needed to identify a value. Off by default: reference rows run to ~26 properties each, mostly SLA timers and workflow switches, and projecting cuts a reply to roughly a third.",
           },
         },
       },
