@@ -1,0 +1,67 @@
+[
+  {
+    "id": "TC1",
+    "ac": "AC1",
+    "text": "Given 一个已连接 HaloPSA 沙箱租户的凭据, When 对一张已存在的工单调用 halopsa_tickets_update 并传入该租户下合法的 tickettype_id, Then 用 halopsa_tickets_get 读回同一张工单时其类型字段等于新传入的值",
+    "type": "manual",
+    "steps": [
+      "准备一个已连接的 HaloPSA 测试/沙箱租户凭据，以及一张已存在的工单 id",
+      "先调用 halopsa_lookups（kind: ticket_types）读到该租户下至少两个不同的合法类型 id，记为 A（工单当前类型）与 B（目标类型，B != A）",
+      "调用 halopsa_tickets_update，传 { ticket_id, tickettype_id: B }",
+      "调用 halopsa_tickets_get 读回同一张工单"
+    ],
+    "expect": "halopsa_tickets_update 的返回结果与 halopsa_tickets_get 读回的结果里，tickettype/tickettype_id 都等于 B，不再是 A",
+    "result": "untested",
+    "notes": "需要真实/沙箱 HaloPSA 租户凭据，本设计所在环境不具备，留给开发棒在有凭据的环境执行；environment: 待定（沙箱租户）"
+  },
+  {
+    "id": "TC2",
+    "ac": "AC2",
+    "text": "Given 一张已存在的工单, When 调用 halopsa_tickets_update 但不传任何类型相关参数, Then 发给 HaloPSA 的请求中不包含类型字段（不会意外把类型改成 undefined/null）",
+    "type": "auto",
+    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should leave the ticket type alone when the caller does not mention it"]
+  },
+  {
+    "id": "TC3",
+    "ac": "AC3",
+    "text": "Given HaloPSA 拒绝了这次更新（例如 tickettype_id 不合法）, When 调用 halopsa_tickets_update, Then 调用方收到的是一次明确失败，不是一个看起来成功但类型未变的结果",
+    "type": "auto",
+    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should surface the error when the update call rejects"],
+    "notes": "这条只验证工具层的错误透传线路（mock SDK 抛错 -> 工具向外抛错，沿用现有 catch/rethrow 机制），不验证 HaloPSA 服务端是否真的会拒绝非法 tickettype_id——那部分见 TC4"
+  },
+  {
+    "id": "TC4",
+    "ac": "AC3",
+    "text": "Given 一个已连接 HaloPSA 沙箱租户的凭据, When 调用 halopsa_tickets_update 并传入该租户下不存在/已禁用的 tickettype_id, Then 调用返回明确错误，且用 halopsa_tickets_get 读回工单确认类型未被改变",
+    "type": "manual",
+    "steps": [
+      "在 TC1 用过的沙箱租户上，找一个明显不存在的 tickettype_id（例如 999999）或已知被禁用的类型 id",
+      "调用 halopsa_tickets_update，传 { ticket_id, tickettype_id: <非法值> }",
+      "观察调用结果；再调用 halopsa_tickets_get 读回同一张工单"
+    ],
+    "expect": "halopsa_tickets_update 调用报错（不是返回一个 tickettype 字段被悄悄忽略的“成功”结果）；halopsa_tickets_get 读回的类型仍是调用前的值",
+    "result": "untested",
+    "notes": "需要真实/沙箱 HaloPSA 租户凭据，本设计所在环境不具备；environment: 待定（沙箱租户）"
+  },
+  {
+    "id": "TC5",
+    "ac": "AC4",
+    "text": "Given 一个 MCP 客户端读取 halopsa_tickets_update 工具的 inputSchema, When 读取 properties 与 required, Then 类型参数出现在 properties 里且不在 required 数组中",
+    "type": "auto",
+    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should expose tickettype_id as an optional field"]
+  },
+  {
+    "id": "TC6",
+    "ac": "AC5",
+    "text": "Given 两个不同租户 A、B 各自的凭据几乎同时调用 halopsa_tickets_update 修改各自一张工单的类型, When 两个调用并发处理, Then 租户 A 的调用只改了租户 A 自己 HaloPSA 实例里的那张工单，租户 B 的调用只改了租户 B 自己的工单，互不串号、互不可见对方数据",
+    "type": "manual",
+    "steps": [
+      "准备两个不同的 HaloPSA 沙箱租户凭据 A、B，各自一张已存在的工单",
+      "以网关模式并发发起两个 halopsa_tickets_update 调用：一个带租户 A 凭据改租户 A 的工单类型，一个带租户 B 凭据改租户 B 的工单类型",
+      "分别用各自凭据调用 halopsa_tickets_get 读回两张工单"
+    ],
+    "expect": "租户 A 的工单类型变化与传给 A 请求的值一致；租户 B 的工单类型变化与传给 B 请求的值一致；任一租户的返回结果中不出现另一租户的工单数据",
+    "result": "untested",
+    "notes": "需要两个真实/沙箱 HaloPSA 租户，本设计所在环境不具备；这是既有的按请求凭据隔离机制（本次改动未修改），此处是确认本次改动没有引入回归，而不是验证一个新机制；environment: 待定（双租户沙箱）"
+  }
+]
