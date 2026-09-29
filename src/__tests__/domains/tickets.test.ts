@@ -295,7 +295,6 @@ describe("Tickets Domain Handler", () => {
           summary: "Updated",
           status_id: 2,
           priority_id: 1,
-          tickettype_id: 4,
         });
 
         expect(mockTicketsUpdate).toHaveBeenCalledWith(1, {
@@ -303,7 +302,6 @@ describe("Tickets Domain Handler", () => {
           details: undefined,
           status_id: 2,
           priority_id: 1,
-          tickettype_id: 4,
           agent_id: undefined,
           team_id: undefined,
           customfields: undefined,
@@ -321,14 +319,67 @@ describe("Tickets Domain Handler", () => {
       });
 
       it("should surface the error when the update call rejects (PRD-19482)", async () => {
-        mockTicketsUpdate.mockRejectedValueOnce(new Error("HaloPSA rejected tickettype_id"));
+        mockTicketsUpdate.mockRejectedValueOnce(new Error("HaloPSA rejected the update"));
+
+        await expect(
+          ticketsHandler.handleCall("halopsa_tickets_update", {
+            ticket_id: 1,
+            summary: "Updated",
+          })
+        ).rejects.toThrow("HaloPSA rejected the update");
+      });
+
+      it("should change the ticket type through an action, not the ticket payload (PRD-19482)", async () => {
+        mockTicketsUpdate.mockResolvedValueOnce({ id: 1, summary: "Updated", tickettype_id: 3 });
+
+        const result = await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          tickettype_id: 3,
+          status_id: 2,
+        });
+
+        expect(result.isError).toBeUndefined();
+        expect(mockActionsCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ ticket_id: 1, new_tickettype: 3, hiddenfromuser: true })
+        );
+        // Halo checks status against the ticket type, so the type must change first.
+        expect(mockActionsCreate.mock.invocationCallOrder[0]).toBeLessThan(
+          mockTicketsUpdate.mock.invocationCallOrder[0]
+        );
+        expect(mockTicketsUpdate.mock.calls[0][1]).not.toHaveProperty("tickettype_id");
+      });
+
+      it("should fail when HaloPSA leaves the ticket type unchanged (PRD-19482)", async () => {
+        mockTicketsUpdate.mockResolvedValueOnce({ id: 1, summary: "Updated", tickettype_id: 1 });
 
         await expect(
           ticketsHandler.handleCall("halopsa_tickets_update", {
             ticket_id: 1,
             tickettype_id: 999999,
           })
-        ).rejects.toThrow("HaloPSA rejected tickettype_id");
+        ).rejects.toThrow("still type 1");
+      });
+
+      it("should read the ticket back when the update reply omits the type (PRD-19482)", async () => {
+        mockTicketsUpdate.mockResolvedValueOnce({ id: 1, summary: "Updated" });
+        mockTicketsGet.mockResolvedValueOnce({ id: 1, tickettype_id: 3 });
+
+        const result = await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          tickettype_id: 3,
+        });
+
+        expect(result.isError).toBeUndefined();
+        expect(mockTicketsGet).toHaveBeenCalledWith(1);
+      });
+
+      it("should not add an action when the ticket type is not being changed (PRD-19482)", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          summary: "Updated",
+        });
+
+        expect(mockActionsCreate).not.toHaveBeenCalled();
       });
 
       it("should pass category_1..4 to API as the value strings Halo expects", async () => {
