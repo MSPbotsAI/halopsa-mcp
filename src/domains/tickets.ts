@@ -295,6 +295,12 @@ function getTools(): Tool[] {
           priority_id: {
             type: "number",
           },
+          tickettype_id: {
+            type: "number",
+            description:
+              "New ticket type, by HaloPSA ticket type ID. Resolve a name to an ID with " +
+              "halopsa_lookups (kind: ticket_types). Omit to leave the ticket type unchanged. (PRD-19482)",
+          },
           halo_agent_id: {
             type: "number",
             description:
@@ -519,6 +525,7 @@ async function handleCall(
           details: args.details as string | undefined,
           status_id: args.status_id as number | undefined,
           priority_id: args.priority_id as number | undefined,
+          tickettype_id: args.tickettype_id as number | undefined,
           agent_id: haloAgentId,
           team_id: args.team_id as number | undefined,
           ...readCategories(args),
