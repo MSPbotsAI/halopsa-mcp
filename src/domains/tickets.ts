@@ -299,7 +299,7 @@ function getTools(): Tool[] {
             type: "number",
             description:
               "New ticket type, by HaloPSA ticket type ID. Resolve a name to an ID with " +
-              "halopsa_lookups (kind: ticket_types). Omit to leave the ticket type unchanged. (PRD-19482)",
+              "halopsa_lookups_get (kinds: [\"ticket_types\"]). Halo records the change as a hidden action on the ticket. Omit to leave the ticket type unchanged. (PRD-19482)",
           },
           halo_agent_id: {
             type: "number",
@@ -525,7 +525,6 @@ async function handleCall(
           details: args.details as string | undefined,
           status_id: args.status_id as number | undefined,
           priority_id: args.priority_id as number | undefined,
-          tickettype_id: args.tickettype_id as number | undefined,
           agent_id: haloAgentId,
           team_id: args.team_id as number | undefined,
           ...readCategories(args),
@@ -533,8 +532,36 @@ async function handleCall(
         };
         logTicket("update payload", { id: ticketId, ...payload });
 
+        // Halo ignores tickettype_id on POST /Tickets for an existing ticket and
+        // still answers 200, so the type change goes through an action's
+        // new_tickettype instead. It runs first because Halo validates status and
+        // categories against the ticket type. (PRD-19482)
+        const ticketTypeId = args.tickettype_id as number | undefined;
+        if (ticketTypeId !== undefined) {
+          const typeChange = {
+            ticket_id: ticketId,
+            note: `Ticket type changed to ${ticketTypeId} via API`,
+            hiddenfromuser: true,
+            new_tickettype: ticketTypeId,
+          };
+          logTicket("update type action", typeChange);
+          await client.actions.create(typeChange);
+        }
+
         const ticket = await client.tickets.update(ticketId, payload);
         logTicket("update response", ticket);
+
+        if (ticketTypeId !== undefined) {
+          const actualTypeId =
+            ticket.tickettype_id ?? (await client.tickets.get(ticketId)).tickettype_id;
+          if (actualTypeId !== ticketTypeId) {
+            throw new Error(
+              `HaloPSA did not change ticket ${ticketId} to ticket type ${ticketTypeId}; ` +
+                `it is still type ${actualTypeId}. Check the id with halopsa_lookups_get ` +
+                `(kinds: ["ticket_types"]).`
+            );
+          }
+        }
 
         return {
           content: [
