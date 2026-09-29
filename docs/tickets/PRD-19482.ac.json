@@ -12,21 +12,29 @@
     ],
     "expect": "halopsa_tickets_update 的返回结果与 halopsa_tickets_get 读回的结果里，tickettype/tickettype_id 都等于 B，不再是 A",
     "result": "untested",
-    "notes": "需要真实/沙箱 HaloPSA 租户凭据，本设计所在环境不具备，留给开发棒在有凭据的环境执行；environment: 待定（沙箱租户）"
+    "notes": "需要真实/沙箱 HaloPSA 租户凭据；npm 私有 registry 认证阻塞已绕过（本地从公开源码构建 node-halopsa@1.1.0，见自测节），S3/S4/S5 均已跑通，本条仍缺的只是 HaloPSA 沙箱租户凭据，本环境未配置。environment: 待定（沙箱租户）"
   },
   {
     "id": "TC2",
     "ac": "AC2",
     "text": "Given 一张已存在的工单, When 调用 halopsa_tickets_update 但不传任何类型相关参数, Then 发给 HaloPSA 的请求中不包含类型字段（不会意外把类型改成 undefined/null）",
     "type": "auto",
-    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should leave the ticket type alone when the caller does not mention it"]
+    "tests": [
+      "src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should leave the ticket type alone when the caller does not mention it (PRD-19482)"
+    ],
+    "result": "pass",
+    "evidence": "npm test（vitest run）198/198 通过，含新增用例 3 条（本条 + TC3 + TC5）；命令与产物见 docs/tickets/PRD-19482.md「自测」节"
   },
   {
     "id": "TC3",
     "ac": "AC3",
     "text": "Given HaloPSA 拒绝了这次更新（例如 tickettype_id 不合法）, When 调用 halopsa_tickets_update, Then 调用方收到的是一次明确失败，不是一个看起来成功但类型未变的结果",
     "type": "auto",
-    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should surface the error when the update call rejects"],
+    "tests": [
+      "src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should surface the error when the update call rejects (PRD-19482)"
+    ],
+    "result": "pass",
+    "evidence": "npm test（vitest run）198/198 通过；本条断言 mockTicketsUpdate 拒绝时 handleCall 原样抛错",
     "notes": "这条只验证工具层的错误透传线路（mock SDK 抛错 -> 工具向外抛错，沿用现有 catch/rethrow 机制），不验证 HaloPSA 服务端是否真的会拒绝非法 tickettype_id——那部分见 TC4"
   },
   {
@@ -41,14 +49,18 @@
     ],
     "expect": "halopsa_tickets_update 调用报错（不是返回一个 tickettype 字段被悄悄忽略的“成功”结果）；halopsa_tickets_get 读回的类型仍是调用前的值",
     "result": "untested",
-    "notes": "需要真实/沙箱 HaloPSA 租户凭据，本设计所在环境不具备；environment: 待定（沙箱租户）"
+    "notes": "需要真实/沙箱 HaloPSA 租户凭据；npm 私有 registry 认证阻塞已绕过（本地从公开源码构建 node-halopsa@1.1.0，见自测节），S3/S4/S5 均已跑通，本条仍缺的只是 HaloPSA 沙箱租户凭据，本环境未配置。environment: 待定（沙箱租户）"
   },
   {
     "id": "TC5",
     "ac": "AC4",
     "text": "Given 一个 MCP 客户端读取 halopsa_tickets_update 工具的 inputSchema, When 读取 properties 与 required, Then 类型参数出现在 properties 里且不在 required 数组中",
     "type": "auto",
-    "tests": ["src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should expose tickettype_id as an optional field"]
+    "tests": [
+      "src/__tests__/domains/tickets.test.ts::halopsa_tickets_update::should expose tickettype_id as an optional field (PRD-19482)"
+    ],
+    "result": "pass",
+    "evidence": "npm test（vitest run）198/198 通过；本条断言 getTools() 返回的 inputSchema.properties 含 tickettype_id 且 required 不含它"
   },
   {
     "id": "TC6",
@@ -62,6 +74,6 @@
     ],
     "expect": "租户 A 的工单类型变化与传给 A 请求的值一致；租户 B 的工单类型变化与传给 B 请求的值一致；任一租户的返回结果中不出现另一租户的工单数据",
     "result": "untested",
-    "notes": "需要两个真实/沙箱 HaloPSA 租户，本设计所在环境不具备；这是既有的按请求凭据隔离机制（本次改动未修改），此处是确认本次改动没有引入回归，而不是验证一个新机制；environment: 待定（双租户沙箱）"
+    "notes": "需要两个真实/沙箱 HaloPSA 租户；这是既有的按请求凭据隔离机制（本次改动未修改），此处是确认本次改动没有引入回归，而不是验证一个新机制。npm 私有 registry 认证阻塞已绕过（本地从公开源码构建 node-halopsa@1.1.0），本条仍缺的只是双租户沙箱凭据，本环境未配置。environment: 待定（双租户沙箱）"
   }
 ]

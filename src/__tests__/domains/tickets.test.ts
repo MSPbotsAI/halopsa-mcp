@@ -140,6 +140,15 @@ describe("Tickets Domain Handler", () => {
       expect(updateTool?.inputSchema.properties).toHaveProperty("team_id");
     });
 
+    it("halopsa_tickets_update should expose tickettype_id as an optional field (PRD-19482)", () => {
+      const tools = ticketsHandler.getTools();
+      const updateTool = tools.find((t) => t.name === "halopsa_tickets_update");
+
+      expect(updateTool).toBeDefined();
+      expect(updateTool?.inputSchema.properties).toHaveProperty("tickettype_id");
+      expect(updateTool?.inputSchema.required).not.toContain("tickettype_id");
+    });
+
     it("halopsa_tickets_get should require ticket_id", () => {
       const tools = ticketsHandler.getTools();
       const getTool = tools.find((t) => t.name === "halopsa_tickets_get");
@@ -286,6 +295,7 @@ describe("Tickets Domain Handler", () => {
           summary: "Updated",
           status_id: 2,
           priority_id: 1,
+          tickettype_id: 4,
         });
 
         expect(mockTicketsUpdate).toHaveBeenCalledWith(1, {
@@ -293,10 +303,32 @@ describe("Tickets Domain Handler", () => {
           details: undefined,
           status_id: 2,
           priority_id: 1,
+          tickettype_id: 4,
           agent_id: undefined,
           team_id: undefined,
           customfields: undefined,
         });
+      });
+
+      it("should leave the ticket type alone when the caller does not mention it (PRD-19482)", async () => {
+        await ticketsHandler.handleCall("halopsa_tickets_update", {
+          ticket_id: 1,
+          summary: "Updated",
+        });
+
+        const payload = mockTicketsUpdate.mock.calls[0][1];
+        expect(payload.tickettype_id).toBeUndefined();
+      });
+
+      it("should surface the error when the update call rejects (PRD-19482)", async () => {
+        mockTicketsUpdate.mockRejectedValueOnce(new Error("HaloPSA rejected tickettype_id"));
+
+        await expect(
+          ticketsHandler.handleCall("halopsa_tickets_update", {
+            ticket_id: 1,
+            tickettype_id: 999999,
+          })
+        ).rejects.toThrow("HaloPSA rejected tickettype_id");
       });
 
       it("should pass category_1..4 to API as the value strings Halo expects", async () => {
