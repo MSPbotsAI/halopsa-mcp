@@ -541,6 +541,9 @@ async function handleCall(
           const typeChange = {
             ticket_id: ticketId,
             note: `Ticket type changed to ${ticketTypeId} via API`,
+            // Halo rejects an action without an outcome (400 "An Outcome must be
+            // entered for this Action"); it accepts any outcome name.
+            outcome: "Ticket Type Changed",
             hiddenfromuser: true,
             new_tickettype: ticketTypeId,
           };
