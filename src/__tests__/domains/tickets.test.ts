@@ -340,7 +340,12 @@ describe("Tickets Domain Handler", () => {
 
         expect(result.isError).toBeUndefined();
         expect(mockActionsCreate).toHaveBeenCalledWith(
-          expect.objectContaining({ ticket_id: 1, new_tickettype: 3, hiddenfromuser: true })
+          expect.objectContaining({
+            ticket_id: 1,
+            new_tickettype: 3,
+            outcome: expect.any(String),
+            hiddenfromuser: true,
+          })
         );
         // Halo checks status against the ticket type, so the type must change first.
         expect(mockActionsCreate.mock.invocationCallOrder[0]).toBeLessThan(
