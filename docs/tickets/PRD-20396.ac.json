@@ -1,0 +1,122 @@
+[
+  {
+    "id": "TC-HALO-001",
+    "ac": "AC1",
+    "type": "auto",
+    "source": "design",
+    "text": "Given a mocked contact matching \"jane\", When halopsa_users_search({query: \"jane\"}), Then the response lists only that contact, record_count matches the row count",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_search::should list only contacts matching the query"]
+  },
+  {
+    "id": "TC-HALO-002",
+    "ac": "AC2",
+    "type": "auto",
+    "source": "design",
+    "text": "Given no mocked contact matches \"zzz-no-match\", When halopsa_users_search({query: \"zzz-no-match\"}), Then the response is {record_count: 0, users: []} with no thrown error",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_search::should return an empty list, not an error, when nothing matches"]
+  },
+  {
+    "id": "TC-HALO-003",
+    "ac": "AC3",
+    "type": "auto",
+    "source": "design",
+    "text": "Given a mocked contact with id 101, When halopsa_users_get({contact_id: 101}), Then the response is that contact's full mocked record",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_get::should return the full contact record by id"]
+  },
+  {
+    "id": "TC-HALO-004",
+    "ac": "AC4",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the mocked client rejects an unknown id, When halopsa_users_get({contact_id: 999999}), Then the handler surfaces a clear error, not an empty/default object",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_get::should surface a clear error for an unknown contact id"]
+  },
+  {
+    "id": "TC-HALO-005",
+    "ac": "AC5",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the mocked duplicate-check search returns no rows, When halopsa_users_create({name, email: \"new@x.com\"}), Then client.users.create is called once and its result (with new id) is returned",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_create::should create the contact when no existing contact has that email"]
+  },
+  {
+    "id": "TC-HALO-006",
+    "ac": "AC6",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the mocked duplicate-check search returns one row with email \"jane@x.com\", When halopsa_users_create({name, email: \"jane@x.com\"}), Then client.users.create is never called, and the response identifies the existing contact's id + email",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_create::should refuse to create and report the existing contact on an exact email match"]
+  },
+  {
+    "id": "TC-HALO-007",
+    "ac": "AC6",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the mocked duplicate-check search returns one row with email \"Jane@X.com\", When halopsa_users_create({..., email: \"jane@x.com\"}) (different case), Then the duplicate is still detected (case-insensitive compare) and no create call is made",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_create::should detect a duplicate email case-insensitively"]
+  },
+  {
+    "id": "TC-HALO-008",
+    "ac": "AC7",
+    "type": "auto",
+    "source": "design",
+    "text": "Given a mocked existing contact {id: 101, name: Jane, phonenumber: 111, email: jane@x.com}, When halopsa_users_update({contact_id: 101, phonenumber: \"222\"}) with no other fields, Then the payload passed to client.users.update contains only phonenumber: \"222\" (plus contact_id routing), with name/email keys absent (undefined)",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_update::should send only the fields the caller provided"]
+  },
+  {
+    "id": "TC-HALO-009",
+    "ac": "AC7",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the same existing contact, When halopsa_users_update({contact_id: 101}) with no other fields at all, Then the call still succeeds as a no-op and no field keys beyond contact_id are sent in the payload",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_update::should be a legal no-op when only contact_id is sent"]
+  },
+  {
+    "id": "TC-HALO-010",
+    "ac": "AC8",
+    "type": "auto",
+    "source": "design",
+    "text": "Given an active mocked contact, When halopsa_users_update({contact_id: 101, inactive: true}), Then the payload sent includes inactive: true and the mocked return reflects it",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_update::should deactivate a contact via inactive true"]
+  },
+  {
+    "id": "TC-HALO-011",
+    "ac": "AC8",
+    "type": "auto",
+    "source": "design",
+    "text": "Given the same contact now mocked as inactive, When halopsa_users_update({contact_id: 101, inactive: false}) is called again, Then the payload sent includes inactive: false (reactivation round-trip)",
+    "tests": ["src/__tests__/domains/users.test.ts::halopsa_users_update::should reactivate a contact via inactive false"]
+  },
+  {
+    "id": "TC-HALO-012",
+    "ac": "AC9",
+    "type": "auto",
+    "source": "design",
+    "text": "Given two mocked sites, When halopsa_sites_list({}) with no filter, Then the response lists both, each with at least id and name, via listResult",
+    "tests": ["src/__tests__/domains/sites.test.ts::halopsa_sites_list::should list all sites with id and name"]
+  },
+  {
+    "id": "TC-HALO-013",
+    "ac": "AC9",
+    "type": "manual",
+    "source": "design",
+    "text": "Given a live/sandbox tenant with at least two clients that each have at least one site, When halopsa_sites_list({client_id: <clientA>}) is called against the real API, Then only client A's sites are returned, not client B's",
+    "steps": [
+      "Obtain or set up a HaloPSA sandbox/dev tenant with at least two clients, each with at least one site",
+      "Call halopsa_sites_list with client_id set to client A's id",
+      "Inspect the returned rows"
+    ],
+    "expect": "Every returned site belongs to client A; no site belonging to client B appears in the response",
+    "result": "untested",
+    "evidence": "",
+    "notes": "Needs a real/sandbox HaloPSA tenant with multi-client site data, not available in this design session; left for the dev leg or later manual verification."
+  },
+  {
+    "id": "TC-HALO-014",
+    "ac": "AC10",
+    "type": "auto",
+    "source": "design",
+    "text": "Security (OWASP API1:2023 BOLA): Given two separate mocked credential contexts (tenant A, tenant B) bound via runWithCredentials, When tenant A calls any of the five new tools, Then the resolved SDK client instance and its mock data are strictly tenant A's, and tenant B's mocked contacts/sites are never reachable from tenant A's call",
+    "tests": ["src/__tests__/domains/users.test.ts::multi-tenant isolation::should never resolve another tenant's client or data (PRD-20396, OWASP API1 BOLA)"]
+  }
+]
