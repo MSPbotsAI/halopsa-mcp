@@ -48,6 +48,21 @@ const { mockHandlers } = vi.hoisted(() => {
       ]),
       handleCall: vi.fn(),
     },
+    users: {
+      getTools: vi.fn().mockReturnValue([
+        { name: "halopsa_users_search", description: "Search contacts" },
+        { name: "halopsa_users_get", description: "Get contact" },
+        { name: "halopsa_users_create", description: "Create contact" },
+        { name: "halopsa_users_update", description: "Update contact" },
+      ]),
+      handleCall: vi.fn(),
+    },
+    sites: {
+      getTools: vi.fn().mockReturnValue([
+        { name: "halopsa_sites_list", description: "List sites" },
+      ]),
+      handleCall: vi.fn(),
+    },
   };
 
   return { mockHandlers };
@@ -76,6 +91,14 @@ vi.mock("../domains/invoices.js", () => ({
 
 vi.mock("../domains/lookups.js", () => ({
   lookupsHandler: mockHandlers.lookups,
+}));
+
+vi.mock("../domains/users.js", () => ({
+  usersHandler: mockHandlers.users,
+}));
+
+vi.mock("../domains/sites.js", () => ({
+  sitesHandler: mockHandlers.sites,
 }));
 
 import {
@@ -114,6 +137,15 @@ describe("Domain Navigation", () => {
     mockHandlers.lookups.getTools.mockReturnValue([
       { name: "halopsa_lookups_get", description: "Read reference tables" },
     ]);
+    mockHandlers.users.getTools.mockReturnValue([
+      { name: "halopsa_users_search", description: "Search contacts" },
+      { name: "halopsa_users_get", description: "Get contact" },
+      { name: "halopsa_users_create", description: "Create contact" },
+      { name: "halopsa_users_update", description: "Update contact" },
+    ]);
+    mockHandlers.sites.getTools.mockReturnValue([
+      { name: "halopsa_sites_list", description: "List sites" },
+    ]);
   });
 
   describe("getAvailableDomains", () => {
@@ -127,6 +159,8 @@ describe("Domain Navigation", () => {
         "agents",
         "invoices",
         "lookups",
+        "users",
+        "sites",
       ]);
     });
 
@@ -146,6 +180,8 @@ describe("Domain Navigation", () => {
       expect(isDomainName("agents")).toBe(true);
       expect(isDomainName("invoices")).toBe(true);
       expect(isDomainName("lookups")).toBe(true);
+      expect(isDomainName("users")).toBe(true);
+      expect(isDomainName("sites")).toBe(true);
     });
 
     it("should return false for invalid domain names", () => {
@@ -198,6 +234,20 @@ describe("Domain Navigation", () => {
 
       expect(handler).toBeDefined();
       expect(handler.getTools()).toHaveLength(2);
+    });
+
+    it("should load users domain handler", async () => {
+      const handler = await getDomainHandler("users");
+
+      expect(handler).toBeDefined();
+      expect(handler.getTools()).toHaveLength(4);
+    });
+
+    it("should load sites domain handler", async () => {
+      const handler = await getDomainHandler("sites");
+
+      expect(handler).toBeDefined();
+      expect(handler.getTools()).toHaveLength(1);
     });
 
     it("should cache domain handlers", async () => {
@@ -260,6 +310,15 @@ describe("Domain Tools Structure", () => {
     mockHandlers.lookups.getTools.mockReturnValue([
       { name: "halopsa_lookups_get", description: "Read reference tables" },
     ]);
+    mockHandlers.users.getTools.mockReturnValue([
+      { name: "halopsa_users_search", description: "Search contacts" },
+      { name: "halopsa_users_get", description: "Get contact" },
+      { name: "halopsa_users_create", description: "Create contact" },
+      { name: "halopsa_users_update", description: "Update contact" },
+    ]);
+    mockHandlers.sites.getTools.mockReturnValue([
+      { name: "halopsa_sites_list", description: "List sites" },
+    ]);
   });
 
   it("tickets domain should expose ticket-specific tools", async () => {
@@ -303,6 +362,24 @@ describe("Domain Tools Structure", () => {
     const tools = handler.getTools();
 
     expect(tools.map((t) => t.name)).toContain("halopsa_lookups_get");
+  });
+
+  it("users domain should expose contact-specific tools", async () => {
+    const handler = await getDomainHandler("users");
+    const tools = handler.getTools();
+
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).toContain("halopsa_users_search");
+    expect(toolNames).toContain("halopsa_users_get");
+    expect(toolNames).toContain("halopsa_users_create");
+    expect(toolNames).toContain("halopsa_users_update");
+  });
+
+  it("sites domain should expose the site-listing tool", async () => {
+    const handler = await getDomainHandler("sites");
+    const tools = handler.getTools();
+
+    expect(tools.map((t) => t.name)).toContain("halopsa_sites_list");
   });
 
   it("invoices domain should expose invoice-specific tools", async () => {
