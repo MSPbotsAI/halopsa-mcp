@@ -11,12 +11,14 @@ const {
   mockContactsGet,
   mockContactsCreate,
   mockContactsUpdate,
+  mockClientsGet,
   mockClient,
 } = vi.hoisted(() => {
   const mockContactsList = vi.fn();
   const mockContactsGet = vi.fn();
   const mockContactsCreate = vi.fn();
   const mockContactsUpdate = vi.fn();
+  const mockClientsGet = vi.fn();
 
   const mockClient = {
     contacts: {
@@ -25,6 +27,9 @@ const {
       create: mockContactsCreate,
       update: mockContactsUpdate,
     },
+    clients: {
+      get: mockClientsGet,
+    },
   };
 
   return {
@@ -32,6 +37,7 @@ const {
     mockContactsGet,
     mockContactsCreate,
     mockContactsUpdate,
+    mockClientsGet,
     mockClient,
   };
 });
@@ -56,9 +62,13 @@ describe("Users Domain Handler", () => {
     mockContactsGet.mockClear();
     mockContactsCreate.mockClear();
     mockContactsUpdate.mockClear();
+    mockClientsGet.mockClear();
 
     // Default: no duplicate on the create-path's lookup, empty on search.
     mockContactsList.mockResolvedValue({ record_count: 0, users: [] });
+    // Default: client 10's main site is 1 (used by the omitted-site_id
+    // default path, TC-HALO-005/TC-HALO-016, PRD-20396 rework F3).
+    mockClientsGet.mockResolvedValue({ id: 10, name: "Acme", main_site_id: 1 });
     mockContactsGet.mockResolvedValue({
       id: 101,
       name: "Jane",
@@ -192,7 +202,11 @@ describe("Users Domain Handler", () => {
     });
 
     describe("halopsa_users_create", () => {
-      // TC-HALO-005 (AC5)
+      // TC-HALO-005 (AC5). site_id expectation updated for PRD-20396 rework
+      // F3: when the caller omits site_id, the handler now looks up the
+      // client's main_site_id and sends that instead of undefined (was
+      // `site_id: undefined` before the fix — see docs/tickets/PRD-20396.md
+      // "Self-test" for why that line changed).
       it("should create the contact when no existing contact has that email", async () => {
         mockContactsList.mockResolvedValue({ record_count: 0, users: [] });
 
@@ -208,7 +222,7 @@ describe("Users Domain Handler", () => {
           name: "New Contact",
           client_id: 10,
           emailaddress: "new@x.com",
-          site_id: undefined,
+          site_id: 1,
           phonenumber: undefined,
         });
 
@@ -252,6 +266,83 @@ describe("Users Domain Handler", () => {
         const data = JSON.parse(result.content[0].text);
         expect(data.created).toBe(false);
         expect(data.existing_contact.id).toBe(101);
+      });
+
+      // TC-HALO-015 (AC6, amended). PRD-20396 rework, INT finding F1: the
+      // duplicate-check search must include inactive contacts (HaloPSA
+      // excludes them by default), and a match against an inactive contact
+      // must still block creation, flagging it as inactive so the caller
+      // knows to reactivate rather than create a second record.
+      it("should treat an inactive contact's email as a duplicate too, and flag it inactive", async () => {
+        mockContactsList.mockResolvedValue({
+          record_count: 1,
+          users: [
+            {
+              id: 125,
+              name: "Former Employee",
+              emailaddress: "prd20396-int-test@example.com",
+              inactive: true,
+            },
+          ],
+        });
+
+        const result = await usersHandler.handleCall("halopsa_users_create", {
+          name: "Former Employee",
+          email: "prd20396-int-test@example.com",
+          client_id: 12,
+        });
+
+        expect(mockContactsList).toHaveBeenCalledWith({
+          search: "prd20396-int-test@example.com",
+          inactive: true,
+        });
+        expect(mockContactsCreate).not.toHaveBeenCalled();
+        const data = JSON.parse(result.content[0].text);
+        expect(data.created).toBe(false);
+        expect(data.existing_contact).toEqual({
+          id: 125,
+          email: "prd20396-int-test@example.com",
+          inactive: true,
+        });
+        expect(data.reason).toContain("halopsa_users_update");
+      });
+
+      // TC-HALO-016 (AC11, new). PRD-20396 rework, INT finding F3: when
+      // site_id is omitted, HaloPSA rejects the create (400 "A Site must be
+      // selected") unless a site is supplied; default to the client's own
+      // main_site_id instead of widening the schema to require it.
+      it("should default site_id to the client's main site when omitted", async () => {
+        mockClientsGet.mockResolvedValue({ id: 12, name: "Acme", main_site_id: 7 });
+
+        const result = await usersHandler.handleCall("halopsa_users_create", {
+          name: "New Contact",
+          email: "newer@x.com",
+          client_id: 12,
+        });
+
+        expect(result.isError).toBeUndefined();
+        expect(mockClientsGet).toHaveBeenCalledWith(12);
+        expect(mockContactsCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ client_id: 12, site_id: 7 })
+        );
+      });
+
+      // Regression guard (dev-added, not an AC on its own): an explicit
+      // site_id must bypass the client lookup entirely, not be overridden
+      // by it.
+      it("should use the caller-provided site_id as-is and skip the client lookup", async () => {
+        const result = await usersHandler.handleCall("halopsa_users_create", {
+          name: "New Contact",
+          email: "explicit@x.com",
+          client_id: 12,
+          site_id: 99,
+        });
+
+        expect(result.isError).toBeUndefined();
+        expect(mockClientsGet).not.toHaveBeenCalled();
+        expect(mockContactsCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ site_id: 99 })
+        );
       });
     });
 

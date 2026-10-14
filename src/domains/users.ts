@@ -75,7 +75,8 @@ function getTools(): Tool[] {
           },
           site_id: {
             type: "number",
-            description: "HaloPSA site this contact belongs to, if known",
+            description:
+              "HaloPSA site this contact belongs to; defaults to the client's main site when omitted",
           },
           phonenumber: {
             type: "string",
@@ -150,11 +151,19 @@ async function handleCall(
 
     case "halopsa_users_create": {
       const email = args.email as string;
+      const clientId = args.client_id as number;
 
-      // Duplicate-prevention: look up by email before creating. Not a
-      // transactional guarantee (read-then-write, no lock on HaloPSA's side
-      // either) — see Tech design §9 (non-functional) for why that's accepted.
-      const existingSearch = await client.contacts.list({ search: email });
+      // Duplicate-prevention: look up by email before creating. `inactive:
+      // true` is required here — HaloPSA's /Users list excludes inactive
+      // contacts by default, so without it this search silently misses a
+      // deactivated contact with the same email and a duplicate gets
+      // created (PRD-20396 rework, INT finding F1, AC6 amended 2026-10-14).
+      // Not a transactional guarantee either way (read-then-write, no lock
+      // on HaloPSA's side) — see Tech design §9 (non-functional).
+      const existingSearch = await client.contacts.list({
+        search: email,
+        inactive: true,
+      });
       const existing = (existingSearch.users ?? []).find(
         (row) =>
           typeof row.emailaddress === "string" &&
@@ -162,6 +171,8 @@ async function handleCall(
       );
 
       if (existing) {
+        const existingIsInactive = existing.inactive === true;
+
         return {
           content: [
             {
@@ -169,10 +180,13 @@ async function handleCall(
               text: JSON.stringify(
                 {
                   created: false,
-                  reason: "A contact with this email already exists",
+                  reason: existingIsInactive
+                    ? "A contact with this email already exists but is inactive; use halopsa_users_update to reactivate it instead of creating a new one"
+                    : "A contact with this email already exists",
                   existing_contact: {
                     id: existing.id,
                     email: existing.emailaddress,
+                    ...(existingIsInactive ? { inactive: true } : {}),
                   },
                 },
                 null,
@@ -183,11 +197,22 @@ async function handleCall(
         };
       }
 
+      // site_id is optional in this tool's schema, but HaloPSA's /Users
+      // endpoint rejects a create with no site (400 "A Site must be
+      // selected") — PRD-20396 rework, INT finding F3. When the caller
+      // omits it, default to the client's own main site rather than
+      // widening the schema to require it.
+      let siteId = args.site_id as number | undefined;
+      if (siteId === undefined) {
+        const parentClient = await client.clients.get(clientId);
+        siteId = parentClient.main_site_id;
+      }
+
       const newContact = await client.contacts.create({
         name: args.name as string,
-        client_id: args.client_id as number,
+        client_id: clientId,
         emailaddress: email,
-        site_id: args.site_id as number | undefined,
+        site_id: siteId,
         phonenumber: args.phonenumber as string | undefined,
       });
 
