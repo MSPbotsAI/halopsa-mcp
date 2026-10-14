@@ -153,17 +153,36 @@ async function handleCall(
       const email = args.email as string;
       const clientId = args.client_id as number;
 
-      // Duplicate-prevention: look up by email before creating. `inactive:
-      // true` is required here — HaloPSA's /Users list excludes inactive
-      // contacts by default, so without it this search silently misses a
-      // deactivated contact with the same email and a duplicate gets
-      // created (PRD-20396 rework, INT finding F1, AC6 amended 2026-10-14).
-      // Not a transactional guarantee either way (read-then-write, no lock
-      // on HaloPSA's side) — see Tech design §9 (non-functional).
-      const existingSearch = await client.contacts.list({
+      // Duplicate-prevention: look up by email before creating. HaloPSA's
+      // /Users list excludes inactive contacts by default, so without
+      // widening the search this silently misses a deactivated contact
+      // with the same email and a duplicate gets created (PRD-20396
+      // rework, INT finding F1, AC6 amended 2026-10-14).
+      //
+      // Round-2 rework fix (`inactive: true`, this SDK's typed
+      // `ContactListParams.inactive`) looked right and passed its own unit
+      // test, but round-3 INT retest (Minnie Zhou, 2026-10-14) found
+      // HaloPSA's GET /Users silently ignores that parameter — the unit
+      // test only asserted the object passed to `client.contacts.list`,
+      // never the actual query string HaloPSA receives, so it could not
+      // have caught this. HaloPSA instead documents `includeinactive` for
+      // "also return inactive contacts" on this list endpoint; it is not
+      // part of this SDK's typed `ContactListParams`
+      // (@wyre-ai/node-halopsa@1.1.0 src/types/contacts.ts:28-37 only
+      // declares `inactive`), so — same as this repo's own
+      // `domains/lookups.ts` precedent for `showall`/`showinactive` on
+      // other Halo entities whose include-inactive flag isn't in the
+      // SDK's types either — it is sent as an untyped param via `as
+      // never`. Deliberately *not* also sending `inactive: true`: that key
+      // has no observed effect on this endpoint and keeping it around
+      // would misleadingly suggest it does something.
+      const duplicateCheckParams: Record<string, unknown> = {
         search: email,
-        inactive: true,
-      });
+        includeinactive: true,
+      };
+      const existingSearch = await client.contacts.list(
+        duplicateCheckParams as never
+      );
       const existing = (existingSearch.users ?? []).find(
         (row) =>
           typeof row.emailaddress === "string" &&
