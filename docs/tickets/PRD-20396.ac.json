@@ -9,7 +9,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_search::should list only contacts matching the query"
     ],
     "result": "pass",
-    "evidence": "vitest: users.test.ts > handleCall > halopsa_users_search > should list only contacts matching the query — PASS. Asserted record_count=1, users[0].name='Jane', and the call args search:'jane', pageSize:50. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: users.test.ts > handleCall > halopsa_users_search > should list only contacts matching the query \u2014 PASS. Asserted record_count=1, users[0].name='Jane', and the call args search:'jane', pageSize:50. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-002",
@@ -21,7 +21,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_search::should return an empty list, not an error, when nothing matches"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_search > should return an empty list, not an error, when nothing matches — PASS. Asserted record_count:0, users:[], isError undefined. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_search > should return an empty list, not an error, when nothing matches \u2014 PASS. Asserted record_count:0, users:[], isError undefined. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-003",
@@ -33,7 +33,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_get::should return the full contact record by id"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_get > should return the full contact record by id — PASS. Asserted id:101, name:'Jane', client.contacts.get called with 101. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_get > should return the full contact record by id \u2014 PASS. Asserted id:101, name:'Jane', client.contacts.get called with 101. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-004",
@@ -45,7 +45,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_get::should surface a clear error for an unknown contact id"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_get > should surface a clear error for an unknown contact id — PASS. Mocked client.contacts.get to reject; asserted handleCall's returned promise rejects with 'Contact 999999 not found' (propagates to mcp-server.ts's try/catch, which formats it as an isError tool response at the protocol layer). | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_get > should surface a clear error for an unknown contact id \u2014 PASS. Mocked client.contacts.get to reject; asserted handleCall's returned promise rejects with 'Contact 999999 not found' (propagates to mcp-server.ts's try/catch, which formats it as an isError tool response at the protocol layer). | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-005",
@@ -57,7 +57,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should create the contact when no existing contact has that email"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_create > should create the contact when no existing contact has that email — PASS. Asserted client.contacts.create called exactly once with {name, client_id, emailaddress, site_id:1, phonenumber:undefined} (site_id resolved from mocked client.clients.get(10).main_site_id; was site_id:undefined before PRD-20396 rework F3 fix — assertion updated, see docs/tickets/PRD-20396.md 'Changed test cases'), response id:200 returned. | Rework gate (2026-10-14): npm test (vitest run) full run — 234 passed, 0 failed, 0 regressions vs. pre-fix run on same test file set (231 passed, 3 failed: this case + TC-HALO-015 + TC-HALO-016); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
+    "evidence": "vitest: ...halopsa_users_create > should create the contact when no existing contact has that email \u2014 PASS. Asserted client.contacts.create called exactly once with {name, client_id, emailaddress, site_id:1, phonenumber:undefined} (site_id resolved from mocked client.clients.get(10).main_site_id; was site_id:undefined before PRD-20396 rework F3 fix \u2014 assertion updated, see docs/tickets/PRD-20396.md 'Changed test cases'), response id:200 returned. | Rework gate (2026-10-14): npm test (vitest run) full run \u2014 234 passed, 0 failed, 0 regressions vs. pre-fix run on same test file set (231 passed, 3 failed: this case + TC-HALO-015 + TC-HALO-016); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
   },
   {
     "id": "TC-HALO-006",
@@ -69,7 +69,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should refuse to create and report the existing contact on an exact email match"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_create > should refuse to create and report the existing contact on an exact email match — PASS. Asserted client.contacts.create NOT called; response {created:false, existing_contact:{id:101, email:'jane@x.com'}}. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_create > should refuse to create and report the existing contact on an exact email match \u2014 PASS. Asserted client.contacts.create NOT called; response {created:false, existing_contact:{id:101, email:'jane@x.com'}}. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-007",
@@ -81,7 +81,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should detect a duplicate email case-insensitively"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_create > should detect a duplicate email case-insensitively — PASS. Mocked existing row emailaddress 'Jane@X.com' vs requested 'jane@x.com'; asserted create not called, duplicate still detected. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_create > should detect a duplicate email case-insensitively \u2014 PASS. Mocked existing row emailaddress 'Jane@X.com' vs requested 'jane@x.com'; asserted create not called, duplicate still detected. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-008",
@@ -93,7 +93,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_update::should send only the fields the caller provided"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_update > should send only the fields the caller provided — PASS. Asserted client.contacts.update(101, {name:undefined, emailaddress:undefined, phonenumber:'222', inactive:undefined}) — undefined keys are dropped by JSON.stringify before reaching HaloPSA (same mechanism as tickets.ts, verified by reading src/http.ts:109 in the SDK source). | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_update > should send only the fields the caller provided \u2014 PASS. Asserted client.contacts.update(101, {name:undefined, emailaddress:undefined, phonenumber:'222', inactive:undefined}) \u2014 undefined keys are dropped by JSON.stringify before reaching HaloPSA (same mechanism as tickets.ts, verified by reading src/http.ts:109 in the SDK source). | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-009",
@@ -105,7 +105,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_update::should be a legal no-op when only contact_id is sent"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_update > should be a legal no-op when only contact_id is sent — PASS. Asserted call succeeds, payload has only contact_id routing + all-undefined fields. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_update > should be a legal no-op when only contact_id is sent \u2014 PASS. Asserted call succeeds, payload has only contact_id routing + all-undefined fields. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-010",
@@ -117,7 +117,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_update::should deactivate a contact via inactive true"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_update > should deactivate a contact via inactive true — PASS. Asserted update called with inactive:true. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_update > should deactivate a contact via inactive true \u2014 PASS. Asserted update called with inactive:true. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-011",
@@ -129,7 +129,7 @@
       "src/__tests__/domains/users.test.ts::halopsa_users_update::should reactivate a contact via inactive false"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_update > should reactivate a contact via inactive false — PASS. Asserted update called with inactive:false (separate call from TC-010, proving the round trip, not just truthy/falsy handling). | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: ...halopsa_users_update > should reactivate a contact via inactive false \u2014 PASS. Asserted update called with inactive:false (separate call from TC-010, proving the round trip, not just truthy/falsy handling). | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-012",
@@ -141,7 +141,7 @@
       "src/__tests__/domains/sites.test.ts::halopsa_sites_list::should list all sites with id and name"
     ],
     "result": "pass",
-    "evidence": "vitest: sites.test.ts > handleCall > halopsa_sites_list > should list all sites with id and name — PASS. Asserted record_count:2, 2 rows with id+name, via listResult. Also covered: default limit 50, explicit client_id+limit forwarded as {client_id, pageSize}, and zero-sites tenant returns empty list not an error. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: sites.test.ts > handleCall > halopsa_sites_list > should list all sites with id and name \u2014 PASS. Asserted record_count:2, 2 rows with id+name, via listResult. Also covered: default limit 50, explicit client_id+limit forwarded as {client_id, pageSize}, and zero-sites tenant returns empty list not an error. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-013",
@@ -157,7 +157,7 @@
     "expect": "Every returned site belongs to client A; no site belonging to client B appears in the response",
     "result": "untested",
     "evidence": "",
-    "notes": "Needs a real/sandbox HaloPSA tenant with multi-client site data; none available in this dev session either (no HALOPSA_CLIENT_ID/SECRET configured, no network access to a tenant). Still untested/local blind spot, not a pass. Partial independent evidence: the unit test 'should forward an optional client_id filter to the API' (sites.test.ts, used as evidence for TC-HALO-012) proves client_id is correctly passed through to client.sites.list({client_id, pageSize}) — i.e. the wiring is correct — but does not prove HaloPSA's own API actually narrows results by it, which is what this case asks. Left for manual verification once a tenant is available."
+    "notes": "Needs a real/sandbox HaloPSA tenant with multi-client site data; none available in this dev session either (no HALOPSA_CLIENT_ID/SECRET configured, no network access to a tenant). Still untested/local blind spot, not a pass. Partial independent evidence: the unit test 'should forward an optional client_id filter to the API' (sites.test.ts, used as evidence for TC-HALO-012) proves client_id is correctly passed through to client.sites.list({client_id, pageSize}) \u2014 i.e. the wiring is correct \u2014 but does not prove HaloPSA's own API actually narrows results by it, which is what this case asks. Left for manual verification once a tenant is available."
   },
   {
     "id": "TC-HALO-014",
@@ -169,31 +169,43 @@
       "src/__tests__/domains/users.test.ts::multi-tenant isolation::should never resolve another tenant's client or data (PRD-20396, OWASP API1 BOLA)"
     ],
     "result": "pass",
-    "evidence": "vitest: users.test.ts > multi-tenant isolation > should never resolve another tenant's client or data (PRD-20396, OWASP API1 BOLA) — PASS. Two concurrent calls (Promise.all) to the real (unmocked) usersHandler.handleCall, bound to different AsyncLocalStorage contexts (tenant-a / tenant-b), each tenant's result contained only its own contact's emailaddress and never the other tenant's. NOTE on scope: this test substitutes a direct AsyncLocalStorage harness for the literal runWithCredentials()+credentialKey()-cache path described in the design text, to keep the test deterministic without invoking the real HaloPSA SDK/network. The generic cache mechanism itself is unmodified by this ticket and is already covered by this repo's own src/__tests__/client.test.ts (credential caching, placeholder handling). What this test specifically proves — and what's actually new in this ticket — is that the five new tools' handler code has no shared/retained state across concurrent calls in different credential contexts. | npm test (vitest run) — full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
+    "evidence": "vitest: users.test.ts > multi-tenant isolation > should never resolve another tenant's client or data (PRD-20396, OWASP API1 BOLA) \u2014 PASS. Two concurrent calls (Promise.all) to the real (unmocked) usersHandler.handleCall, bound to different AsyncLocalStorage contexts (tenant-a / tenant-b), each tenant's result contained only its own contact's emailaddress and never the other tenant's. NOTE on scope: this test substitutes a direct AsyncLocalStorage harness for the literal runWithCredentials()+credentialKey()-cache path described in the design text, to keep the test deterministic without invoking the real HaloPSA SDK/network. The generic cache mechanism itself is unmodified by this ticket and is already covered by this repo's own src/__tests__/client.test.ts (credential caching, placeholder handling). What this test specifically proves \u2014 and what's actually new in this ticket \u2014 is that the five new tools' handler code has no shared/retained state across concurrent calls in different credential contexts. | npm test (vitest run) \u2014 full run: 247 passed, 0 failed, 0 regressions vs. baseline (216 passed); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0 (.tdd/final.json, .tdd/gate-selftest.json)"
   },
   {
     "id": "TC-HALO-015",
     "ac": "AC6",
     "type": "auto",
     "source": "dev",
-    "text": "Given the mocked duplicate-check search (now called with inactive: true) returns one row with email \"prd20396-int-test@example.com\" and inactive: true, When halopsa_users_create({..., email: \"prd20396-int-test@example.com\"}), Then client.contacts.create is never called, and the response's existing_contact includes inactive: true with a reason pointing at halopsa_users_update for reactivation. PRD-20396 rework, INT finding F1 (Minnie Zhou, [TEST · PRD-20396]): HaloPSA excludes inactive contacts from /Users list by default, so the pre-fix duplicate check silently missed deactivated contacts and created a second record.",
+    "text": "Given the mocked duplicate-check search (now called with includeinactive: true) returns one row with email \"prd20396-int-test@example.com\" and inactive: true, When halopsa_users_create({..., email: \"prd20396-int-test@example.com\"}), Then client.contacts.create is never called, and the response's existing_contact includes inactive: true with a reason pointing at halopsa_users_update for reactivation. PRD-20396 rework round 2, INT finding F1 (Minnie Zhou, [TEST \u00b7 PRD-20396]): HaloPSA excludes inactive contacts from /Users list by default, so the pre-fix duplicate check silently missed deactivated contacts and created a second record. Updated round 3 (INT retest, Minnie Zhou, 2026-10-14): round 2's fix (inactive: true) was itself silently ignored by HaloPSA's live /Users endpoint -- this assertion now checks the actually-effective parameter, includeinactive: true. See TC-HALO-017 for the test that verifies this at the real HTTP query-string level, not just this mocked SDK-call assertion.",
     "tests": [
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should treat an inactive contact's email as a duplicate too, and flag it inactive"
     ],
     "result": "pass",
-    "evidence": "vitest: ...halopsa_users_create > should treat an inactive contact's email as a duplicate too, and flag it inactive — PASS. Asserted client.contacts.list called with {search, inactive:true}, client.contacts.create NOT called, existing_contact equals {id:125, email:'prd20396-int-test@example.com', inactive:true}, reason contains 'halopsa_users_update'. Red→green verified: stashing the fix (git checkout 5f5dfc0 -- src/domains/users.ts) makes this case fail (mockContactsList called without inactive:true). | Rework gate (2026-10-14): npm test full run 234 passed, 0 failed, 0 regressions; npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
+    "evidence": "vitest: ...halopsa_users_create > should treat an inactive contact's email as a duplicate too, and flag it inactive \u2014 PASS. Asserted client.contacts.list called with {search, includeinactive:true}, client.contacts.create NOT called, existing_contact equals {id:125, email:'prd20396-int-test@example.com', inactive:true}, reason contains 'halopsa_users_update'. Round-3 red\u2192green verified: stashing only the round-3 fix (src/domains/users.ts, keeping this updated test) makes this case fail with received {search, inactive:true} vs expected {search, includeinactive:true} \u2014 confirms the test actually exercises the round-3 change, not just restates it. | Rework round 3 gate (2026-10-14): npm test full run 235 passed, 0 failed, 0 regressions (234\u2192235, net +1 new test, TC-HALO-017); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
   },
   {
     "id": "TC-HALO-016",
     "ac": "AC11",
     "type": "auto",
     "source": "dev",
-    "text": "Given client.clients.get mocked to return main_site_id: 7 for client_id: 12, When halopsa_users_create({..., client_id: 12}) is called without site_id, Then client.clients.get(12) is called and client.contacts.create receives site_id: 7; a companion case confirms an explicit site_id bypasses the client lookup entirely. PRD-20396 rework, INT finding F3 (Minnie Zhou, [TEST · PRD-20396]): HaloPSA's /Users endpoint rejects a create with no site (400 'A Site must be selected') even though site_id is optional in the tool schema.",
+    "text": "Given client.clients.get mocked to return main_site_id: 7 for client_id: 12, When halopsa_users_create({..., client_id: 12}) is called without site_id, Then client.clients.get(12) is called and client.contacts.create receives site_id: 7; a companion case confirms an explicit site_id bypasses the client lookup entirely. PRD-20396 rework, INT finding F3 (Minnie Zhou, [TEST \u00b7 PRD-20396]): HaloPSA's /Users endpoint rejects a create with no site (400 'A Site must be selected') even though site_id is optional in the tool schema.",
     "tests": [
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should default site_id to the client's main site when omitted",
       "src/__tests__/domains/users.test.ts::halopsa_users_create::should use the caller-provided site_id as-is and skip the client lookup"
     ],
     "result": "pass",
-    "evidence": "vitest: ...should default site_id to the client's main site when omitted — PASS. Asserted client.clients.get called with 12, client.contacts.create called with site_id:7. ...should use the caller-provided site_id as-is and skip the client lookup — PASS. Asserted client.clients.get NOT called, client.contacts.create called with site_id:99. Red→green verified: stashing the fix makes the first case fail (mockClientsGet never called). | Rework gate (2026-10-14): npm test full run 234 passed, 0 failed, 0 regressions; npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
+    "evidence": "vitest: ...should default site_id to the client's main site when omitted \u2014 PASS. Asserted client.clients.get called with 12, client.contacts.create called with site_id:7. ...should use the caller-provided site_id as-is and skip the client lookup \u2014 PASS. Asserted client.clients.get NOT called, client.contacts.create called with site_id:99. Red\u2192green verified: stashing the fix makes the first case fail (mockClientsGet never called). | Rework gate (2026-10-14): npm test full run 234 passed, 0 failed, 0 regressions; npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0."
+  },
+  {
+    "id": "TC-HALO-017",
+    "ac": "AC6",
+    "type": "auto",
+    "source": "dev",
+    "text": "Given the real @wyre-ai/node-halopsa SDK (not this repo's utils/client.js mock) wired to a stubbed global fetch, with no existing contact in the stubbed /Users response, When usersHandler.handleCall(\"halopsa_users_create\", {email: \"prd20396-int-test@example.com\", client_id: 12, site_id: 7, ...}) runs end to end through getClient()/the real SDK, Then the literal query string the stubbed fetch received for the GET /Users duplicate-check request contains includeinactive=true and search=prd20396-int-test%40example.com, and does not contain an inactive param. PRD-20396 rework round 3 (INT retest, Minnie Zhou, 2026-10-14): round 2's mocked-SDK-call test (TC-HALO-015) could only ever assert the object passed to client.contacts.list, never the real wire-level query string -- which is exactly why it could not catch F1 still being broken on INT. This case closes that gap by stubbing only the network boundary (fetch) and letting the real SDK's query-building code run, per the comment's explicit instruction to assert the actual HTTP query parameters, not just the SDK call args.",
+    "tests": [
+      "src/__tests__/halopsa-query-params.test.ts::halopsa_users_create duplicate-check query params (real SDK, stubbed fetch)::sends includeinactive=true (not inactive=true) on the real /Users query string"
+    ],
+    "result": "pass",
+    "evidence": "vitest: halopsa-query-params.test.ts > ...sends includeinactive=true (not inactive=true) on the real /Users query string \u2014 PASS. Parsed the stubbed fetch's captured GET /Users request URL with new URL(...).searchParams: includeinactive=\"true\", search=\"prd20396-int-test@example.com\", has(\"inactive\")===false. Red\u2192green verified: stashing only src/domains/users.ts's fix (keeping this test) makes it fail with includeinactive null (received) vs \"true\" (expected) -- confirms the test detects exactly the round-3 regression, not a tautology. | Rework round 3 gate (2026-10-14): npm test full run 235 passed, 0 failed, 0 regressions (234\u2192235); npm run typecheck exit 0; npm run lint exit 0; npm run build exit 0. | NOT independently verified against a live HaloPSA tenant (mspbotstest) -- this session has no HALOPSA_* credentials anywhere in the environment (checked skill .env, shared.env, repo .env files); per the ticket's explicit instruction, recorded as unverified rather than assumed, consistent with TC-HALO-013's existing 'untested, needs live tenant' status."
   }
 ]

@@ -268,11 +268,26 @@ describe("Users Domain Handler", () => {
         expect(data.existing_contact.id).toBe(101);
       });
 
-      // TC-HALO-015 (AC6, amended). PRD-20396 rework, INT finding F1: the
-      // duplicate-check search must include inactive contacts (HaloPSA
-      // excludes them by default), and a match against an inactive contact
-      // must still block creation, flagging it as inactive so the caller
-      // knows to reactivate rather than create a second record.
+      // TC-HALO-015 (AC6, amended). PRD-20396 rework round 2, INT finding
+      // F1: the duplicate-check search must include inactive contacts
+      // (HaloPSA excludes them by default), and a match against an
+      // inactive contact must still block creation, flagging it as
+      // inactive so the caller knows to reactivate rather than create a
+      // second record.
+      //
+      // Round-3 update (INT retest, Minnie Zhou, 2026-10-14): round 2's
+      // fix sent `inactive: true`, which this assertion dutifully checked
+      // — and which HaloPSA's real /Users endpoint turned out to ignore
+      // entirely (F1 still failed on INT). This assertion alone could
+      // never have caught that: it only proves what object the handler
+      // passes to the (here, fully mocked) SDK method, not what query
+      // string HaloPSA actually receives. See
+      // `halopsa-query-params.test.ts` for the test that closes that gap
+      // by exercising the real SDK's query-building against a stubbed
+      // `fetch`. This assertion still earns its place for a different
+      // reason: it is what proves *this handler* builds the param object
+      // with the right key at all, which the HTTP-level test (by design,
+      // to stay independent) does not re-derive from this file's source.
       it("should treat an inactive contact's email as a duplicate too, and flag it inactive", async () => {
         mockContactsList.mockResolvedValue({
           record_count: 1,
@@ -294,7 +309,7 @@ describe("Users Domain Handler", () => {
 
         expect(mockContactsList).toHaveBeenCalledWith({
           search: "prd20396-int-test@example.com",
-          inactive: true,
+          includeinactive: true,
         });
         expect(mockContactsCreate).not.toHaveBeenCalled();
         const data = JSON.parse(result.content[0].text);
