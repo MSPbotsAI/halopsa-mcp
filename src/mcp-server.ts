@@ -39,7 +39,9 @@ type Domain =
   | "assets"
   | "agents"
   | "invoices"
-  | "lookups";
+  | "lookups"
+  | "users"
+  | "sites";
 
 /**
  * Domain metadata for navigation
@@ -52,6 +54,9 @@ const domainDescriptions: Record<Domain, string> = {
   invoices: "Invoice management - list and get billing and invoice information",
   lookups:
     "Reference data - read the tenant's ticket statuses, priorities, ticket types and Category 1-4 values, so ids and category strings are resolved live instead of hardcoded",
+  users:
+    "Contact management - search, get, create (with duplicate-prevention by email) and update (partial, including activate/deactivate) contacts",
+  sites: "Site management - list sites, optionally scoped to one client",
 };
 
 /**
@@ -78,7 +83,9 @@ const navigateTool: Tool = {
 - assets: ${domainDescriptions.assets}
 - agents: ${domainDescriptions.agents}
 - invoices: ${domainDescriptions.invoices}
-- lookups: ${domainDescriptions.lookups}`,
+- lookups: ${domainDescriptions.lookups}
+- users: ${domainDescriptions.users}
+- sites: ${domainDescriptions.sites}`,
       },
     },
     required: ["domain"],
@@ -366,6 +373,14 @@ export function createMcpServer(): Server {
       }
       if (name.startsWith("halopsa_lookups_")) {
         const handler = await getDomainHandler("lookups");
+        return await handler.handleCall(name, toolArgs);
+      }
+      if (name.startsWith("halopsa_users_")) {
+        const handler = await getDomainHandler("users");
+        return await handler.handleCall(name, toolArgs);
+      }
+      if (name.startsWith("halopsa_sites_")) {
+        const handler = await getDomainHandler("sites");
         return await handler.handleCall(name, toolArgs);
       }
 

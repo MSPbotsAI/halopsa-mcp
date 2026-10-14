@@ -8,3 +8,7 @@ coverage/
 
 # Cloudflare Wrangler
 .wrangler/
+
+# mb-ticket-pipeline dev-leg test-state scratch (tdd.py run/gate snapshots)
+.tdd/
+gate-*.json
