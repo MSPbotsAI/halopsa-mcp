@@ -21,3 +21,10 @@
 ### 测试覆盖说明
 
 `src/__tests__/domains/users.test.ts` 的「multi-tenant isolation」测试（AC10/TC-HALO-014）用一个直接的 `AsyncLocalStorage` 小工具替代了字面意义上的 `runWithCredentials()` + `credentialKey()` 缓存路径，为的是在一个整体 `vi.mock` 过的测试文件里不去真的调用 SDK/网络，保持确定性（曾经尝试用 `vi.doUnmock` + `vi.resetModules()` 去跑真实的 `utils/client.ts` + 真实 SDK 构造函数，但那个通过 `file:` 链接的外部化 SDK 包在测试中途 reset 模块之后没能可靠地吃到 `vi.doMock`，再深究下去不值得占用本单的时间）。这套通用的缓存/隔离机制本身不是本单改动的，本仓库自己的 `src/__tests__/client.test.ts` 已经覆盖过。
+
+## PRD-20396 · 2026-10-14（返工，INT 发现 F1 + F3）
+
+- **`halopsa_users_create` 的查重搜索现在带 `inactive: true`**（`src/domains/users.ts:157` 附近，本轮提交，工作分支 sha 见 `docs/tickets/PRD-20396.md`「返工轮次」交接条目）。不带这个参数时，HaloPSA 的 `/Users` 列表默认排除 inactive 联系人（`ContactListParams.inactive`，`@wyre-ai/node-halopsa@1.1.0` `src/types/contacts.ts:34-35`，已对照和上面「依赖绕过」同一份本地 SDK clone、tag `v1.1.0` 核实），所以对一个已停用联系人的邮箱做查重会静默返回 0 行，让第二个联系人被建出来——2026-10-14 由 Minnie Zhou 在 INT（租户 `mspbotstest`，联系人 125/126）发现，`[TEST · PRD-20396]`。**以后任何针对这个 SDK 的 list 接口做重复/唯一性校验，都要考虑是否需要把 `inactive` 类行也纳入**——本仓库的 `clients.ts`/`sites.ts` 目前都没有类似的查重逻辑，这是第一个先例。
+- **命中为 inactive 时，`existing_contact` 现在带 `inactive: true`**，`reason` 指向用 `halopsa_users_update` 复活而不是新建。这是一次刻意的 AC6 修订（inactive 邮箱匹配现在也算重复，不再只有 active 才算）——Tom 在收到报告的当轮就批准了，没有再单独走一轮设计/groom 确认（见 `docs/tickets/PRD-20396.md` 的 AC6 说明）。
+- **`halopsa_users_create` 省略 `site_id` 时现在默认取该 client 的 `main_site_id`**（`client.clients.get(client_id).main_site_id`，复用本仓库别处已经在用的 `clients.ts` 资源——没有引入新的 SDK 面）。根因：HaloPSA 的 `/Users` 端点要求必须有站点，不传时返回 400 `"A Site must be selected"`——同一轮在 INT 上发现。如果某个 client 根本没配 `main_site_id`，这里会落到 `undefined`，HaloPSA 仍会拒绝创建；这个剩余边界本轮没有进一步处理（超出本轮范围——工单原话「site_id, if known」本来就没预料到 HaloPSA 会把它变成强制项，一个连主站点都没有的 client 是比 INT 实测报告的场景更窄的边界）。
+- **环境说明（重新确认，非新发现）**：GitHub Packages 401 的绕过做法（`docs/modules/tickets.md` 的 PRD-19482 条目）本轮原样复用——此前某次会话已经在 `/tmp/node-halopsa-build` 构建好了 `node-halopsa` tag `v1.1.0` 的本地 clone，本轮不需要重新 clone/构建，只需要做 `package.json` 依赖替换来跑 `npm install` 再复原。
